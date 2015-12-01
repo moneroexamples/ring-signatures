@@ -160,6 +160,15 @@ namespace xmreg
     }
 
 
+//    ostream&
+//    operator<< (ostream& os, const signature& sig)
+//    {
+//        os << "c: <" << epee::string_tools::pod_to_hex(sig.c) << ">, ";
+//        os << "e: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
+//        return os;
+//    }
+
+
     /*
      * Generate key_image of foran ith output
      */

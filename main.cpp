@@ -8,6 +8,8 @@ using namespace std;
 using namespace fmt;
 
 using xmreg::operator<<;
+
+
 using boost::filesystem::path;
 
 unsigned int epee::g_test_dbg_lock_sleep = 0;
@@ -125,105 +127,24 @@ int main(int ac, const char* av[]) {
         return false;
     }
 
-    for (const cryptonote::txin_v& tx_in: tx.vin)
+
+    cout << "Signatures: " << endl;
+
+    for (const std::vector<crypto::signature>& sigv: tx.signatures)
     {
-        // get tx input key
-        const cryptonote::txin_to_key& tx_in_to_key
-                = boost::get<cryptonote::txin_to_key>(tx_in);
+        size_t i {0};
 
-
-        print("Input's Key image: {}, xmr: {:0.4f}\n",
-              tx_in_to_key.k_image,
-              xmreg::get_xmr(tx_in_to_key.amount));
-
-        // get absolute offsets of mixins
-        std::vector<uint64_t> absolute_offsets
-                = cryptonote::relative_output_offsets_to_absolute(
-                        tx_in_to_key.key_offsets);
-
-        std::vector<cryptonote::output_data_t> outputs;
-        core_storage.get_db().get_output_key(tx_in_to_key.amount,
-                                             absolute_offsets,
-                                             outputs);
-
-        size_t count = 0;
-
-        for (const uint64_t& i: absolute_offsets)
+        for (const crypto::signature& sig: sigv)
         {
-            cryptonote::output_data_t output_data;
-
-            // get tx hash and output index for output
-            if (count < outputs.size())
-            {
-                output_data = outputs.at(count);
-            }
-            else
-            {
-                output_data = core_storage.get_db().get_output_key(
-                        tx_in_to_key.amount, i);
-            }
-
-
-            // find tx_hash with given output
-            crypto::hash tx_hash;
-            cryptonote::transaction tx_found;
-
-            if (!mcore.get_tx_hash_from_output_pubkey(
-                    output_data.pubkey,
-                    output_data.height,
-                    tx_hash, tx_found))
-            {
-                print("- cant find tx_hash for ouput: {}, mixin no: {}, blk: {}\n",
-                      output_data.pubkey, count + 1, output_data.height);
-
-                continue;
-            }
-
-
-            // find output in a given transaction
-            // basted on its public key
-            cryptonote::tx_out found_output;
-            size_t output_index;
-
-            if (!mcore.find_output_in_tx(tx_found,
-                                         output_data.pubkey,
-                                         found_output,
-                                         output_index))
-            {
-                print("- cant find tx_out for ouput: {}, mixin no: {}, blk: {}\n",
-                      output_data.pubkey, count + 1, output_data.height);
-
-                continue;
-            }
-
-            print("\n - mixin no: {}, block height: {}",
-                  count + 1, output_data.height);
-
-            bool is_ours {false};
-
-            if (VIEWKEY_AND_ADDRESS_GIVEN)
-            {
-                // check if the given mixin's output is ours based
-                // on the view key and public spend key from the address
-                is_ours = xmreg::is_output_ours(output_index, tx_found,
-                                                private_view_key,
-                                                address.m_spend_public_key);
-
-                Color c  = is_ours ? Color::GREEN : Color::RED;
-
-                print(", ours: "); print_colored(c, "{}", is_ours);
-            }
-
-            print("\n  - output's pubkey: {}\n", output_data.pubkey);
-
-            print("  - in tx with hash: {}, out_i: {:03d}, xmr: {:0.4f}\n",
-                  tx_hash, output_index, xmreg::get_xmr(found_output.amount));
-
-            ++count;
+            //cout << " - " << ++i << epee::string_tools::pod_to_hex(sig.c) << endl;
+            //cout << " - " << ++i << sig.c << endl;
+            cout << " - " << ++i << sig << endl;
         }
 
         cout << endl;
+
     }
+
 
     cout << "\nEnd of program." << endl;
 

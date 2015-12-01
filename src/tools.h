@@ -67,6 +67,9 @@ namespace xmreg
     ostream&
     operator<< (ostream& os, const account_public_address& addr);
 
+//    ostream&
+//    operator<< (ostream& os, const signature& sig);
+
 
     string
     get_default_lmdb_folder();
