@@ -28,7 +28,13 @@
 #ifndef FMT_FORMAT_H_
 #define FMT_FORMAT_H_
 
+#if defined _MSC_VER && _MSC_VER <= 1500
+typedef unsigned int       uint32_t;
+typedef unsigned long long uint64_t;
+typedef long long          intmax_t;
+#else
 #include <stdint.h>
+#endif
 
 #include <cassert>
 #include <cmath>
@@ -44,7 +50,7 @@
 #endif
 
 #if FMT_USE_IOSTREAMS
-# include <sstream>
+# include <ostream>
 #endif
 
 #ifdef _SECURE_SCL
@@ -206,7 +212,7 @@ inline uint32_t clzll(uint64_t x) {
 // makes the fmt::literals implementation easier. However, an explicit check
 // for variadic templates is added here just in case.
 # define FMT_USE_USER_DEFINED_LITERALS \
-   FMT_USE_VARIADIC_TEMPLATES && \
+   FMT_USE_VARIADIC_TEMPLATES && FMT_USE_RVALUE_REFERENCES && \
    (FMT_HAS_FEATURE(cxx_user_literals) || \
        (FMT_GCC_VERSION >= 407 && FMT_HAS_GXX_CXX11) || _MSC_VER >= 1900)
 #endif
@@ -214,6 +220,78 @@ inline uint32_t clzll(uint64_t x) {
 #ifndef FMT_ASSERT
 # define FMT_ASSERT(condition, message) assert((condition) && message)
 #endif
+
+namespace fmt {
+namespace internal {
+struct DummyInt {
+  int data[2];
+  operator int() const { return 0; }
+};
+typedef std::numeric_limits<fmt::internal::DummyInt> FPUtil;
+
+// Dummy implementations of system functions such as signbit and ecvt called
+// if the latter are not available.
+inline DummyInt signbit(...) { return DummyInt(); }
+inline DummyInt _ecvt_s(...) { return DummyInt(); }
+inline DummyInt isinf(...) { return DummyInt(); }
+inline DummyInt _finite(...) { return DummyInt(); }
+inline DummyInt isnan(...) { return DummyInt(); }
+inline DummyInt _isnan(...) { return DummyInt(); }
+
+// A helper function to suppress bogus "conditional expression is constant"
+// warnings.
+template <typename T>
+inline T check(T value) { return value; }
+}
+}  // namespace fmt
+
+namespace std {
+// Standard permits specialization of std::numeric_limits. This specialization
+// is used to resolve ambiguity between isinf and std::isinf in glibc:
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=48891
+// and the same for isnan and signbit.
+template <>
+class numeric_limits<fmt::internal::DummyInt> :
+    public std::numeric_limits<int> {
+ public:
+  // Portable version of isinf.
+  template <typename T>
+  static bool isinfinity(T x) {
+    using namespace fmt::internal;
+    // The resolution "priority" is:
+    // isinf macro > std::isinf > ::isinf > fmt::internal::isinf
+    if (check(sizeof(isinf(x)) == sizeof(bool) ||
+              sizeof(isinf(x)) == sizeof(int))) {
+      return !!isinf(x);
+    }
+    return !_finite(static_cast<double>(x));
+  }
+
+  // Portable version of isnan.
+  template <typename T>
+  static bool isnotanumber(T x) {
+    using namespace fmt::internal;
+    if (check(sizeof(isnan(x)) == sizeof(bool) ||
+              sizeof(isnan(x)) == sizeof(int))) {
+      return !!isnan(x);
+    }
+    return _isnan(static_cast<double>(x)) != 0;
+  }
+
+  // Portable version of signbit.
+  static bool isnegative(double x) {
+    using namespace fmt::internal;
+    if (check(sizeof(signbit(x)) == sizeof(int)))
+      return !!signbit(x);
+    if (x < 0) return true;
+    if (!isnotanumber(x)) return false;
+    int dec = 0, sign = 0;
+    char buffer[2];  // The buffer size must be >= 2 or _ecvt_s will fail.
+    _ecvt_s(buffer, sizeof(buffer), x, 0, &dec, &sign);
+    return sign != 0;
+  }
+};
+}  // namespace std
 
 namespace fmt {
 
@@ -241,7 +319,7 @@ void format(BasicFormatter<Char> &f, const Char *&format_str, const T &value);
 /**
   \rst
   A string reference. It can be constructed from a C string or ``std::string``.
-  
+
   You can use one of the following typedefs for common character types:
 
   +------------+-------------------------+
@@ -579,54 +657,6 @@ class FixedBuffer : public fmt::Buffer<Char> {
   void grow(std::size_t size);
 };
 
-#ifndef _MSC_VER
-// Portable version of signbit.
-inline int getsign(double x) {
-  // When compiled in C++11 mode signbit is no longer a macro but a function
-  // defined in namespace std and the macro is undefined.
-# ifdef signbit
-  return signbit(x);
-# else
-  return std::signbit(x);
-# endif
-}
-
-// Portable version of isinf.
-# ifdef isinf
-inline int isinfinity(double x) { return isinf(x); }
-inline int isinfinity(long double x) { return isinf(x); }
-# else
-inline int isinfinity(double x) { return std::isinf(x); }
-inline int isinfinity(long double x) { return std::isinf(x); }
-# endif
-
-// Portable version of isnan.
-# ifdef isnan
-inline int isnotanumber(double x) { return isnan(x); }
-inline int isnotanumber(long double x) { return isnan(x); }
-# else
-inline int isnotanumber(double x) { return std::isnan(x); }
-inline int isnotanumber(long double x) { return std::isnan(x); }
-# endif
-#else
-inline int getsign(double value) {
-  if (value < 0) return 1;
-  if (value == value) return 0;
-  int dec = 0, sign = 0;
-  char buffer[2];  // The buffer size must be >= 2 or _ecvt_s will fail.
-  _ecvt_s(buffer, sizeof(buffer), value, 0, &dec, &sign);
-  return sign;
-}
-inline int isinfinity(double x) { return !_finite(x); }
-inline int isinfinity(long double x) {
-  return !_finite(static_cast<double>(x));
-}
-inline int isnotanumber(double x) { return _isnan(x); }
-inline int isnotanumber(long double x) {
-    return _isnan(static_cast<double>(x));
-}
-#endif
-
 template <typename Char>
 class BasicCharTraits {
  public:
@@ -912,32 +942,64 @@ struct WCharHelper<T, wchar_t> {
   typedef Null<T> Unsupported;
 };
 
+typedef char Yes[1];
+typedef char No[2];
+
+// These are non-members to workaround an overload resolution bug in bcc32.
+Yes &convert(fmt::ULongLong);
+Yes &convert(std::ostream &);
+No &convert(...);
+
 template <typename T>
-class IsConvertibleToInt {
- protected:
-  typedef char yes[1];
-  typedef char no[2];
+T &get();
 
-  static const T &get();
-
-  static yes &convert(fmt::ULongLong);
-  static no &convert(...);
-  
- public:
-  enum { value = (sizeof(convert(get())) == sizeof(yes)) };
+struct DummyStream : std::ostream {
+  // Hide all operator<< overloads from std::ostream.
+  void operator<<(Null<>);
 };
 
-#define FMT_CONVERTIBLE_TO_INT(Type) \
+No &operator<<(std::ostream &, int);
+
+template<typename T, bool ENABLE_CONVERSION>
+struct ConvertToIntImpl {
+  enum { value = false };
+};
+
+template<typename T>
+struct ConvertToIntImpl<T, true> {
+  // Convert to int only if T doesn't have an overloaded operator<<.
+  enum {
+    value = sizeof(convert(get<DummyStream>() << get<T>())) == sizeof(No)
+  };
+};
+
+template<typename T, bool ENABLE_CONVERSION>
+struct ConvertToIntImpl2 {
+  enum { value = false };
+};
+
+template<typename T>
+struct ConvertToIntImpl2<T, true> {
+  enum {
+    // Don't convert numeric types.
+    value = ConvertToIntImpl<T, !std::numeric_limits<T>::is_specialized>::value
+  };
+};
+
+template<typename T>
+struct ConvertToInt {
+  enum { enable_conversion = sizeof(convert(get<T>())) == sizeof(Yes) };
+  enum { value = ConvertToIntImpl2<T, enable_conversion>::value };
+};
+
+#define FMT_DISABLE_CONVERSION_TO_INT(Type) \
   template <> \
-  class IsConvertibleToInt<Type> { \
-   public: \
-    enum { value = 1 }; \
-  }
+  struct ConvertToInt<Type> {  enum { value = 0 }; }
 
 // Silence warnings about convering float to int.
-FMT_CONVERTIBLE_TO_INT(float);
-FMT_CONVERTIBLE_TO_INT(double);
-FMT_CONVERTIBLE_TO_INT(long double);
+FMT_DISABLE_CONVERSION_TO_INT(float);
+FMT_DISABLE_CONVERSION_TO_INT(double);
+FMT_DISABLE_CONVERSION_TO_INT(long double);
 
 template<bool B, class T = void>
 struct EnableIf {};
@@ -951,10 +1013,12 @@ struct Conditional { typedef T type; };
 template<class T, class F>
 struct Conditional<false, T, F> { typedef F type; };
 
-// A helper function to suppress bogus "conditional expression is constant"
-// warnings.
-template <typename T>
-inline T check(T value) { return value; }
+// For bcc32 which doesn't understand ! in template arguments.
+template<bool>
+struct Not { enum { value = 0 }; };
+
+template<>
+struct Not<false> { enum { value = 1 }; };
 
 // Makes an Arg object from any type.
 template <typename Char>
@@ -1084,20 +1148,21 @@ class MakeValue : public Arg {
 
   template <typename T>
   MakeValue(const T &value,
-            typename EnableIf<!IsConvertibleToInt<T>::value, int>::type = 0) {
+            typename EnableIf<Not<
+              ConvertToInt<T>::value>::value, int>::type = 0) {
     custom.value = &value;
     custom.format = &format_custom_arg<T>;
   }
 
   template <typename T>
   MakeValue(const T &value,
-            typename EnableIf<IsConvertibleToInt<T>::value, int>::type = 0) {
+            typename EnableIf<ConvertToInt<T>::value, int>::type = 0) {
     int_value = value;
   }
 
   template <typename T>
   static uint64_t type(const T &) {
-    return IsConvertibleToInt<T>::value ? Arg::INT : Arg::CUSTOM;
+    return ConvertToInt<T>::value ? Arg::INT : Arg::CUSTOM;
   }
 
   // Additional template param `Char_` is needed here because make_type always
@@ -1395,10 +1460,10 @@ class BasicFormatter : private internal::FormatterBase {
  private:
   BasicWriter<Char> &writer_;
   internal::ArgMap<Char> map_;
-  
+
   FMT_DISALLOW_COPY_AND_ASSIGN(BasicFormatter);
 
-  using FormatterBase::get_arg;
+  using internal::FormatterBase::get_arg;
 
   // Checks if manual indexing is used and returns the argument with
   // specified name.
@@ -1412,7 +1477,7 @@ class BasicFormatter : private internal::FormatterBase {
 
  public:
   BasicFormatter(const ArgList &args, BasicWriter<Char> &w)
-    : FormatterBase(args), writer_(w) {}
+    : internal::FormatterBase(args), writer_(w) {}
 
   BasicWriter<Char> &writer() { return writer_; }
 
@@ -1745,13 +1810,45 @@ inline uint64_t make_type(FMT_GEN15(FMT_ARG_TYPE_DEFAULT)) {
       (t12.type << 48) | (t13.type << 52) | (t14.type << 56);
 }
 #endif
+
+template <class Char>
+class FormatBuf : public std::basic_streambuf<Char> {
+ private:
+  typedef typename std::basic_streambuf<Char>::int_type int_type;
+  typedef typename std::basic_streambuf<Char>::traits_type traits_type;
+
+  Buffer<Char> &buffer_;
+  Char *start_;
+
+ public:
+  FormatBuf(Buffer<Char> &buffer) : buffer_(buffer), start_(&buffer[0]) {
+    this->setp(start_, start_ + buffer_.capacity());
+  }
+
+  int_type overflow(int_type ch = traits_type::eof()) {
+    if (!traits_type::eq_int_type(ch, traits_type::eof())) {
+      size_t size = this->pptr() - start_;
+      buffer_.resize(size);
+      buffer_.reserve(size * 2);
+
+      start_ = &buffer_[0];
+      start_[size] = traits_type::to_char_type(ch);
+      this->setp(start_+ size + 1, start_ + size * 2);
+    }
+    return ch;
+  }
+
+  size_t size() const {
+    return this->pptr() - start_;
+  }
+};
 }  // namespace internal
 
 # define FMT_MAKE_TEMPLATE_ARG(n) typename T##n
 # define FMT_MAKE_ARG_TYPE(n) T##n
 # define FMT_MAKE_ARG(n) const T##n &v##n
-# define FMT_MAKE_REF_char(n) fmt::internal::MakeValue<char>(v##n)
-# define FMT_MAKE_REF_wchar_t(n) fmt::internal::MakeValue<wchar_t>(v##n)
+# define FMT_ASSIGN_char(n) arr[n] = fmt::internal::MakeValue<char>(v##n)
+# define FMT_ASSIGN_wchar_t(n) arr[n] = fmt::internal::MakeValue<wchar_t>(v##n)
 
 #if FMT_USE_VARIADIC_TEMPLATES
 // Defines a variadic function returning void.
@@ -1867,7 +1964,7 @@ class SystemError : public internal::RuntimeError {
    *error_code* is a system error code as given by ``errno``.
    If *error_code* is not a valid error code such as -1, the system message
    may look like "Unknown error -1" and is platform-dependent.
-   
+
    **Example**::
 
      // This throws a SystemError with the description
@@ -2056,7 +2153,7 @@ class BasicWriter {
   /**
     \rst
     Writes formatted data.
-    
+
     *args* is an argument list representing arbitrary arguments.
 
     **Example**::
@@ -2387,16 +2484,16 @@ void BasicWriter<Char>::write_double(
   }
 
   char sign = 0;
-  // Use getsign instead of value < 0 because the latter is always
+  // Use isnegative instead of value < 0 because the latter is always
   // false for NaN.
-  if (internal::getsign(static_cast<double>(value))) {
+  if (internal::FPUtil::isnegative(static_cast<double>(value))) {
     sign = '-';
     value = -value;
   } else if (spec.flag(SIGN_FLAG)) {
     sign = spec.flag(PLUS_FLAG) ? '+' : ' ';
   }
 
-  if (internal::isnotanumber(value)) {
+  if (internal::FPUtil::isnotanumber(value)) {
     // Format NaN ourselves because sprintf's output is not consistent
     // across platforms.
     std::size_t nan_size = 4;
@@ -2411,7 +2508,7 @@ void BasicWriter<Char>::write_double(
     return;
   }
 
-  if (internal::isinfinity(value)) {
+  if (internal::FPUtil::isinfinity(value)) {
     // Format infinity ourselves because sprintf's output is not consistent
     // across platforms.
     std::size_t inf_size = 4;
@@ -2584,7 +2681,7 @@ typedef BasicMemoryWriter<wchar_t> WMemoryWriter;
   This class template provides operations for formatting and writing data
   into a fixed-size array. For writing into a dynamically growing buffer
   use :class:`fmt::BasicMemoryWriter`.
-  
+
   Any write method will throw ``std::runtime_error`` if the output doesn't fit
   into the array.
 
@@ -2631,9 +2728,13 @@ typedef BasicArrayWriter<wchar_t> WArrayWriter;
 // Formats a value.
 template <typename Char, typename T>
 void format(BasicFormatter<Char> &f, const Char *&format_str, const T &value) {
-  std::basic_ostringstream<Char> os;
-  os << value;
-  std::basic_string<Char> str = os.str();
+  internal::MemoryBuffer<Char, internal::INLINE_BUFFER_SIZE> buffer;
+
+  internal::FormatBuf<Char> format_buf(buffer);
+  std::basic_ostream<Char> output(&format_buf);
+  output << value;
+
+  BasicStringRef<Char> str(&buffer[0], format_buf.size());
   internal::Arg arg = internal::MakeValue<Char>(str);
   arg.type = static_cast<internal::Arg::Type>(
         internal::MakeValue<Char>::type(str));
@@ -2698,7 +2799,7 @@ enum Color { BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE };
   Formats a string and prints it to stdout using ANSI escape sequences
   to specify color (experimental).
   Example:
-    PrintColored(fmt::RED, "Elapsed time: {0:.2f} seconds") << 1.23;
+    print_colored(fmt::RED, "Elapsed time: {0:.2f} seconds", 1.23);
  */
 void print_colored(Color c, CStringRef format, ArgList args);
 
@@ -2970,7 +3071,8 @@ void arg(WStringRef, const internal::NamedArg<Char>&) FMT_DELETED_OR_UNDEFINED;
   template <FMT_GEN(n, FMT_MAKE_TEMPLATE_ARG)> \
   inline ReturnType func(FMT_FOR_EACH(FMT_ADD_ARG_NAME, __VA_ARGS__), \
       FMT_GEN(n, FMT_MAKE_ARG)) { \
-    fmt::internal::ArgArray<n>::Type arr = {FMT_GEN(n, FMT_MAKE_REF_##Char)}; \
+    fmt::internal::ArgArray<n>::Type arr; \
+    FMT_GEN(n, FMT_ASSIGN_##Char); \
     call(FMT_FOR_EACH(FMT_GET_ARG_NAME, __VA_ARGS__), fmt::ArgList( \
       fmt::internal::make_type(FMT_GEN(n, FMT_MAKE_REF2)), arr)); \
   }
@@ -3112,7 +3214,7 @@ inline namespace literals {
   C++11 literal equivalent of :func:`fmt::format`.
 
   **Example**::
-  
+
     using namespace fmt::literals;
     std::string message = "The answer is {}"_format(42);
   \endrst
@@ -3127,7 +3229,7 @@ operator"" _format(const wchar_t *s, std::size_t) { return {s}; }
   C++11 literal equivalent of :func:`fmt::arg`.
 
   **Example**::
-    
+
     using namespace fmt::literals;
     print("Elapsed time: {s:.2f} seconds", "s"_a=1.23);
   \endrst

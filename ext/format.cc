@@ -425,9 +425,14 @@ class BasicArgFormatter : public ArgVisitor<Impl, void> {
   BasicWriter<Char> &writer() { return writer_; }
   FormatSpec &spec() { return spec_; }
   
-  void write_bool(bool value) {
+  void write(bool value) {
     const char *str_value = value ? "true" : "false";
     Arg::StringValue<char> str = { str_value, strlen(str_value) };
+    writer_.write_str(str, spec_);
+  }
+
+  void write(const char *value) {
+    Arg::StringValue<char> str = {value, value != 0 ? strlen(value) : 0};
     writer_.write_str(str, spec_);
   }
 
@@ -444,7 +449,7 @@ class BasicArgFormatter : public ArgVisitor<Impl, void> {
   void visit_bool(bool value) {
     if (spec_.type_)
       return visit_any_int(value);
-    write_bool(value);
+    write(value);
   }
 
   void visit_char(int value) {
@@ -479,8 +484,7 @@ class BasicArgFormatter : public ArgVisitor<Impl, void> {
   void visit_cstring(const char *value) {
     if (spec_.type_ == 'p')
       return write_pointer(value);
-    Arg::StringValue<char> str = {value, 0};
-    writer_.write_str(str, spec_);
+    write(value);
   }
 
   void visit_string(Arg::StringValue<char> value) {
@@ -522,8 +526,11 @@ class PrintfArgFormatter :
     public BasicArgFormatter<PrintfArgFormatter<Char>, Char> {
 
   void write_null_pointer() {
-    this->writer() << "(nil)";
+    this->spec().type_ = 0;
+    this->write("(nil)");
   }
+
+  typedef BasicArgFormatter<PrintfArgFormatter<Char>, Char> Base;
 
  public:
   PrintfArgFormatter(BasicWriter<Char> &w, FormatSpec &s)
@@ -534,7 +541,7 @@ class PrintfArgFormatter :
     if (fmt_spec.type_ != 's')
       return this->visit_any_int(value);
     fmt_spec.type_ = 0;
-    this->write_bool(value);
+    this->write(value);
   }
 
   void visit_char(int value) {
@@ -561,18 +568,18 @@ class PrintfArgFormatter :
 
   void visit_cstring(const char *value) {
     if (value)
-      BasicArgFormatter<PrintfArgFormatter<Char>, Char>::visit_cstring(value);
+      Base::visit_cstring(value);
     else if (this->spec().type_ == 'p')
       write_null_pointer();
     else
-      this->writer() << "(null)";
+      this->write("(null)");
   }
 
   void visit_pointer(const void *value) {
     if (value)
-      BasicArgFormatter<PrintfArgFormatter<Char>, Char>::visit_pointer(value);
-    else
-      write_null_pointer();
+      return Base::visit_pointer(value);
+    this->spec().type_ = 0;
+    write_null_pointer();
   }
 
   void visit_custom(Arg::CustomValue c) {
@@ -744,7 +751,7 @@ FMT_FUNC void fmt::internal::format_windows_error(
       }
     }
   } FMT_CATCH(...) {}
-  format_error_code(out, error_code, message);
+  fmt::format_error_code(out, error_code, message);  // 'fmt::' is for bcc32.
 }
 
 #endif  // FMT_USE_WINDOWS_H
@@ -767,7 +774,7 @@ FMT_FUNC void fmt::internal::format_system_error(
       buffer.resize(buffer.size() * 2);
     }
   } FMT_CATCH(...) {}
-  format_error_code(out, error_code, message);
+  fmt::format_error_code(out, error_code, message);  // 'fmt::' is for bcc32.
 }
 
 template <typename Char>
@@ -835,8 +842,6 @@ void fmt::BasicWriter<Char>::write_str(
       FMT_THROW(FormatError("string pointer is null"));
       return;
     }
-    if (*str_value)
-      str_size = std::char_traits<StrChar>::length(str_value);
   }
   std::size_t precision = spec.precision_;
   if (spec.precision_ >= 0 && precision < str_size)
@@ -1285,13 +1290,15 @@ void fmt::BasicFormatter<Char>::format(BasicCStringRef<Char> format_str) {
 
 FMT_FUNC void fmt::report_system_error(
     int error_code, fmt::StringRef message) FMT_NOEXCEPT {
-  report_error(internal::format_system_error, error_code, message);
+  // 'fmt::' is for bcc32.
+  fmt::report_error(internal::format_system_error, error_code, message);
 }
 
 #if FMT_USE_WINDOWS_H
 FMT_FUNC void fmt::report_windows_error(
     int error_code, fmt::StringRef message) FMT_NOEXCEPT {
-  report_error(internal::format_windows_error, error_code, message);
+  // 'fmt::' is for bcc32.
+  fmt::report_error(internal::format_windows_error, error_code, message);
 }
 #endif
 
