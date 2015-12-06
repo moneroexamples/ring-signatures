@@ -8,6 +8,7 @@ using namespace std;
 using namespace fmt;
 
 using xmreg::operator<<;
+using xmreg::print_sig;
 
 
 using boost::filesystem::path;
@@ -42,7 +43,7 @@ int main(int ac, const char* av[]) {
 
     // get the program command line options, or
     // some default values for quick check
-    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "09d9e8eccf82b3d6811ed7005102caf1b605f325cf60ed372abeb4a67d956fff";
+    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "5961e98c41d212eee89c2e581cdae08fd6c6c5703b484d6332b1196c47f1c7de";
 
 
     crypto::hash tx_hash;
@@ -130,20 +131,174 @@ int main(int ac, const char* av[]) {
 
     cout << "Signatures: " << endl;
 
-    for (const std::vector<crypto::signature>& sigv: tx.signatures)
-    {
-        size_t i {0};
+    crypto::hash tx_prefix_hash = cryptonote::get_transaction_prefix_hash(tx);
 
-        for (const crypto::signature& sig: sigv)
+
+    size_t in_i = tx.vin.size();
+
+    vector<uint64_t> results;
+    results.resize(tx.vin.size(), 0);
+
+    for (size_t i = 0; i < tx.vin.size(); ++i)
+    {
+        const cryptonote::txin_v& tx_in = tx.vin[i];
+
+        // get tx input key
+        const cryptonote::txin_to_key& tx_in_to_key
+                = boost::get<cryptonote::txin_to_key>(tx_in);
+
+
+        cout <<  "Key image: " << tx_in_to_key.k_image << endl;
+
+
+
+        uint64_t pmax_used_block_height {0};
+
+        vector<crypto::public_key> mixins_pub_keys;
+
+
+        // get absolute offsets of mixins
+        std::vector<uint64_t> absolute_offsets
+                = cryptonote::relative_output_offsets_to_absolute(
+                        tx_in_to_key.key_offsets);
+
+        std::vector<cryptonote::output_data_t> outputs;
+        core_storage.get_db().get_output_key(tx_in_to_key.amount,
+                                             absolute_offsets,
+                                             outputs);
+
+
+
+        vector<crypto::public_key> outs_pub_keys;
+
+        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi)
         {
-            //cout << " - " << ++i << epee::string_tools::pod_to_hex(sig.c) << endl;
-            //cout << " - " << ++i << sig.c << endl;
-            cout << " - " << ++i << sig << endl;
+            cryptonote::output_data_t output_data = outputs.at(outi);
+            outs_pub_keys.push_back(output_data.pubkey);
+
+            cout << "  - mix out pubkey: " << output_data.pubkey << endl;
+            //cout << "  - sig: " << tx.signatures[i][outi] << endl;
+
+            vector<const crypto::public_key*> out_pub_key_array;
+
+            out_pub_key_array.push_back(&output_data.pubkey);
+            vector<crypto::signature> sig_array;
+            sig_array.push_back( tx.signatures[i][outi]);
+//
+//            crypto::check_ring_signature(tx_prefix_hash,
+//                                         tx_in_to_key.k_image,
+//                                         out_pub_key_array,
+//                                         tx.signatures[i].data());
+
+//            crypto::crypto_ops::check_ring_signature(tx_prefix_hash,
+//                                                     tx_in_to_key.k_image,
+//                                                     out_pub_key_array.data(),
+//                                                     out_pub_key_array.size(),
+//                                                     sig_array.data());
+
+
+//            bool result = crypto::check_ring_signature(tx_prefix_hash,
+//                                         tx_in_to_key.k_image,
+//                                         out_pub_key_array.data(),
+//                                         out_pub_key_array.size(),
+//                                         sig_array.data());
+
+
+            for (const crypto::signature& sig: tx.signatures[i])
+            {
+                cout << "    - sig: " << print_sig(sig) << endl;
+//                bool result = crypto::check_signature(tx_prefix_hash,
+//                                                      output_data.pubkey,
+//                                                      sig);
+
+                vector<crypto::signature> sig_array;
+                sig_array.push_back(sig);
+
+            bool result = crypto::check_ring_signature(tx_prefix_hash,
+                                         tx_in_to_key.k_image,
+                                         out_pub_key_array.data(),
+                                         out_pub_key_array.size(),
+                                         sig_array.data());
+
+                cout << "    - result: " << result << endl;
+
+            }
+
+
+            //outs_pub_keys.push_back(output_data.pubkey);
         }
+
+
+        //cout << "tx.signatures[i].size(): " << tx.signatures[i].size() << endl;
+
+//        cout << "\ntx.signatures[i].size(): " << tx.signatures[i].size() << endl;
+//
+//        for (const crypto::signature& sig: tx.signatures[i])
+//        {
+//            cout << "  - sig: " << print_sig(sig) << endl;
+//        }
+
+
+        uint64_t result;
+
+        vector<crypto::signature> sigs = tx.signatures[i];
+
 
         cout << endl;
 
+        for (auto& s: sigs)
+        {
+            cout << print_sig(s) << endl;
+        }
+
+
+        cout << "After random: " << endl;
+
+        random_shuffle (sigs.begin(), sigs.end());
+
+        for (auto& s: sigs)
+        {
+            cout << print_sig(s) << endl;
+        }
+//
+        mcore.check_ring_signature(tx_prefix_hash,
+                         tx_in_to_key.k_image,
+                         outs_pub_keys,
+                         sigs,
+                         result);
+
+
+
+        cout << result << endl;
+
+//
+//        check_ring_signature(tx_prefix_hash,
+//                             tx_in_to_key.k_image,
+//                             pubkeys[sig_index],
+//                             tx.signatures[i],
+//                             results[sig_index]);
+
+
     }
+
+
+//
+//    for (const std::vector<crypto::signature>& sigv: tx.signatures)
+//    {
+//        size_t i {0};
+//
+//        for (const crypto::signature& sig: sigv)
+//        {
+//            cout << " - " << print_sig(sig) << endl;
+//        }
+//
+//        cout << endl;
+//    }
+//
+//
+//
+
+
 
 
     cout << "\nEnd of program." << endl;

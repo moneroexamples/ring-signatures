@@ -160,13 +160,17 @@ namespace xmreg
     }
 
 
-//    ostream&
-//    operator<< (ostream& os, const signature& sig)
-//    {
-//        os << "c: <" << epee::string_tools::pod_to_hex(sig.c) << ">, ";
-//        os << "e: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
-//        return os;
-//    }
+
+    string
+    print_sig (const signature& sig)
+    {
+        stringstream ss;
+
+        ss << "c: <" << epee::string_tools::pod_to_hex(sig.c) << "> "
+           << "e: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
+
+        return ss.str();
+    }
 
 
     /*

@@ -67,8 +67,8 @@ namespace xmreg
     ostream&
     operator<< (ostream& os, const account_public_address& addr);
 
-//    ostream&
-//    operator<< (ostream& os, const signature& sig);
+    string
+    print_sig (const signature& sig);
 
 
     string

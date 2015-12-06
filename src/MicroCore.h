@@ -58,6 +58,12 @@ namespace xmreg
                                        crypto::hash& tx_hash,
                                        transaction& tx_found);
 
+        void
+        check_ring_signature(const crypto::hash &tx_prefix_hash,
+                             const crypto::key_image &key_image,
+                             const std::vector<crypto::public_key> &pubkeys,
+                             const std::vector<crypto::signature>& sig,
+                             uint64_t &result);
 
         virtual ~MicroCore();
     };

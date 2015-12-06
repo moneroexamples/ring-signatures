@@ -246,6 +246,29 @@ namespace xmreg
 
 
 
+    void
+    MicroCore::check_ring_signature(const crypto::hash &tx_prefix_hash,
+                                          const crypto::key_image &key_image,
+                                          const std::vector<crypto::public_key> &pubkeys,
+                                          const std::vector<crypto::signature>& sig,
+                                          uint64_t &result)
+    {
+        std::vector<const crypto::public_key *> p_output_keys;
+
+        for (auto &key : pubkeys)
+        {
+            p_output_keys.push_back(&key);
+        }
+
+        result = crypto::check_ring_signature(tx_prefix_hash,
+                                              key_image,
+                                              p_output_keys,
+                                              sig.data()) ? 1 : 0;
+    }
+
+
+
+
 
     /**
      * De-initialized Blockchain.
