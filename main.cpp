@@ -43,7 +43,7 @@ int main(int ac, const char* av[]) {
 
     // get the program command line options, or
     // some default values for quick check
-    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "5961e98c41d212eee89c2e581cdae08fd6c6c5703b484d6332b1196c47f1c7de";
+    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "12de5cdae6adb17a406a9e25f5c4b2b886f0af796cc0a7ab18bc8ca000e43a0a";
 
 
     crypto::hash tx_hash;
@@ -55,26 +55,46 @@ int main(int ac, const char* av[]) {
     }
 
     crypto::secret_key private_view_key;
+    crypto::secret_key private_spend_key;
     cryptonote::account_public_address address;
 
-    if (viewkey_opt && address_opt)
+
+//    string viewkey_str {"fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309"};
+//    string spendkey_str {"1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03"};
+//
+//    string address_str {"41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB"};
+//
+
+    string viewkey_str {"fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309"};
+    string spendkey_str {"1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03"};
+
+    string address_str {"41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB"};
+
+
+    // parse string representing given private viewkey
+    if (!xmreg::parse_str_secret_key(viewkey_str, private_view_key))
     {
-         // parse string representing given private viewkey
-        if (!xmreg::parse_str_secret_key(*viewkey_opt, private_view_key))
-        {
-            cerr << "Cant parse view key: " << *viewkey_opt << endl;
-            return 1;
-        }
-
-        // parse string representing given monero address
-        if (!xmreg::parse_str_address(*address_opt,  address))
-        {
-            cerr << "Cant parse address: " << *address_opt << endl;
-            return 1;
-        }
-
-        VIEWKEY_AND_ADDRESS_GIVEN = true;
+        cerr << "Cant parse view key: " << viewkey_str << endl;
+        return 1;
     }
+
+
+
+    // parse string representing given private spend
+    if (!xmreg::parse_str_secret_key(spendkey_str, private_spend_key))
+    {
+        cerr << "Cant parse view key: " << spendkey_str << endl;
+        return 1;
+    }
+
+    // parse string representing given monero address
+    if (!xmreg::parse_str_address(address_str,  address))
+    {
+        cerr << "Cant parse address: " << address_str << endl;
+        return 1;
+    }
+
+
 
 
     path blockchain_path;
@@ -103,12 +123,12 @@ int main(int ac, const char* av[]) {
 
     print("\n\ntx hash          : {}\n\n", tx_hash);
 
-    if (VIEWKEY_AND_ADDRESS_GIVEN)
-    {
-        // lets check our keys
-        print("private view key : {}\n", private_view_key);
-        print("address          : {}\n\n\n", address);
-    }
+
+    // lets check our keys
+    print("private view key : {}\n", private_view_key);
+    print("private spend key: {}\n", private_spend_key);
+    print("address          : {}\n\n\n", address);
+
 
 
     // get the high level cryptonote::Blockchain object to interact
@@ -139,20 +159,23 @@ int main(int ac, const char* av[]) {
     vector<uint64_t> results;
     results.resize(tx.vin.size(), 0);
 
-    for (size_t i = 0; i < tx.vin.size(); ++i)
-    {
-        const cryptonote::txin_v& tx_in = tx.vin[i];
+
+    cryptonote::account_keys sender_account_keys {address,
+                                                  private_spend_key,
+                                                  private_view_key};
+
+    for (size_t i = 0; i < tx.vin.size(); ++i) {
+        const cryptonote::txin_v &tx_in = tx.vin[i];
 
         // get tx input key
-        const cryptonote::txin_to_key& tx_in_to_key
+        const cryptonote::txin_to_key &tx_in_to_key
                 = boost::get<cryptonote::txin_to_key>(tx_in);
 
 
-        cout <<  "Key image: " << tx_in_to_key.k_image << endl;
+        cout << "Key image: " << tx_in_to_key.k_image << endl;
 
 
-
-        uint64_t pmax_used_block_height {0};
+        uint64_t pmax_used_block_height{0};
 
         vector<crypto::public_key> mixins_pub_keys;
 
@@ -168,22 +191,20 @@ int main(int ac, const char* av[]) {
                                              outputs);
 
 
-
         vector<crypto::public_key> outs_pub_keys;
 
-        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi)
-        {
+        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi) {
             cryptonote::output_data_t output_data = outputs.at(outi);
             outs_pub_keys.push_back(output_data.pubkey);
 
             cout << "  - mix out pubkey: " << output_data.pubkey << endl;
             //cout << "  - sig: " << tx.signatures[i][outi] << endl;
 
-            vector<const crypto::public_key*> out_pub_key_array;
+            vector<const crypto::public_key *> out_pub_key_array;
 
             out_pub_key_array.push_back(&output_data.pubkey);
             vector<crypto::signature> sig_array;
-            sig_array.push_back( tx.signatures[i][outi]);
+            sig_array.push_back(tx.signatures[i][outi]);
 //
 //            crypto::check_ring_signature(tx_prefix_hash,
 //                                         tx_in_to_key.k_image,
@@ -204,8 +225,7 @@ int main(int ac, const char* av[]) {
 //                                         sig_array.data());
 
 
-            for (const crypto::signature& sig: tx.signatures[i])
-            {
+            for (const crypto::signature &sig: tx.signatures[i]) {
                 cout << "    - sig: " << print_sig(sig) << endl;
 //                bool result = crypto::check_signature(tx_prefix_hash,
 //                                                      output_data.pubkey,
@@ -214,19 +234,99 @@ int main(int ac, const char* av[]) {
                 vector<crypto::signature> sig_array;
                 sig_array.push_back(sig);
 
-            bool result = crypto::check_ring_signature(tx_prefix_hash,
-                                         tx_in_to_key.k_image,
-                                         out_pub_key_array.data(),
-                                         out_pub_key_array.size(),
-                                         sig_array.data());
+                bool result = crypto::check_ring_signature(tx_prefix_hash,
+                                                           tx_in_to_key.k_image,
+                                                           out_pub_key_array.data(),
+                                                           out_pub_key_array.size(),
+                                                           sig_array.data());
 
                 cout << "    - result: " << result << endl;
 
             }
 
 
+            // find tx_hash with given output
+            crypto::hash tx_hash;
+            cryptonote::transaction tx_found;
+
+
+            if (!mcore.get_tx_hash_from_output_pubkey(
+                    output_data.pubkey,
+                    output_data.height,
+                    tx_hash, tx_found))
+            {
+                print("- cant find tx_hash for ouput: {}, mixin no: {}, blk: {}\n",
+                      output_data.pubkey,outi, output_data.height);
+
+                continue;
+            }
+
+
+            // find output in a given transaction
+            // basted on its public key
+            cryptonote::tx_out found_output;
+            size_t output_index;
+
+            if (!mcore.find_output_in_tx(tx_found,
+                                         output_data.pubkey,
+                                         found_output,
+                                         output_index))
+            {
+                print("- cant find tx_out for ouput: {}, mixin no: {}, blk: {}\n",
+                      output_data.pubkey, outi, output_data.height);
+
+                continue;
+            }
+
+            cout << "Real tx " << ": ";
+
+            cryptonote::keypair in_ephemeral;
+            crypto::key_image ki;
+
+            if (!generate_key_image_helper(sender_account_keys,
+                                           output_data.pubkey,
+                                           output_index,
+                                           in_ephemeral,
+                                           ki))
+            {
+                   return false;
+            }
+
+
+
+            cout << (output_data.pubkey == in_ephemeral.pub) << ": ";
+
+            cout << "output_index: " << output_index << ": ";
+
+            cout << "ki: " << ki << endl;
+
+
             //outs_pub_keys.push_back(output_data.pubkey);
         }
+
+
+//        size_t real_output = absolute_offsets.size();
+//
+//        std::vector<crypto::signature> new_sigs(absolute_offsets.size());
+//
+//        cryptonote::keypair in_ephemeral;
+//        crypto::key_image ki;
+//
+//        if (!generate_key_image_helper(sender_account_keys,
+//                                       src_entr.real_out_tx_key,
+//                                       src_entr.real_output_in_tx_index,
+//                                       in_ephemeral,
+//                                       ki))
+//        {
+//            return false;
+//        }
+//
+//        crypto::generate_ring_signature(tx_prefix_hash,
+//                                        tx_in_to_key.k_image,
+//                                        outs_pub_keys.data(),
+//                                        in_contexts[i].in_ephemeral.sec,
+//                                        real_output,
+//                                        new_sigs.data());
 
 
         //cout << "tx.signatures[i].size(): " << tx.signatures[i].size() << endl;
@@ -266,6 +366,8 @@ int main(int ac, const char* av[]) {
                          outs_pub_keys,
                          sigs,
                          result);
+
+
 
 
 
