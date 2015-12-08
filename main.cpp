@@ -164,7 +164,9 @@ int main(int ac, const char* av[]) {
                                                   private_spend_key,
                                                   private_view_key};
 
-    for (size_t i = 0; i < tx.vin.size(); ++i) {
+    for (size_t i = 0; i < tx.vin.size(); ++i)
+    {
+
         const cryptonote::txin_v &tx_in = tx.vin[i];
 
         // get tx input key
@@ -193,7 +195,8 @@ int main(int ac, const char* av[]) {
 
         vector<crypto::public_key> outs_pub_keys;
 
-        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi) {
+        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi)
+        {
 
             cryptonote::output_data_t output_data = outputs.at(outi);
 
@@ -227,7 +230,8 @@ int main(int ac, const char* av[]) {
 //                                         sig_array.data());
 
 
-            for (const crypto::signature &sig: tx.signatures[i]) {
+            for (const crypto::signature &sig: tx.signatures[i])
+            {
                 cout << "    - sig: " << print_sig(sig) << endl;
 //                bool result = crypto::check_signature(tx_prefix_hash,
 //                                                      output_data.pubkey,
@@ -298,6 +302,10 @@ int main(int ac, const char* av[]) {
                    return false;
             }
 
+            //        size_t real_output = absolute_offsets.size();
+//
+
+
 
 
             cout << (output_data.pubkey == in_ephemeral.pub) << ": ";
@@ -308,7 +316,20 @@ int main(int ac, const char* av[]) {
 
 
             //outs_pub_keys.push_back(output_data.pubkey);
-        }
+
+        } //  for (size_t outi = 0; outi < absolute_offsets.size(); ++outi)
+
+
+
+        std::vector<crypto::signature> new_sigs(absolute_offsets.size());
+
+
+//        crypto::generate_ring_signature(tx_prefix_hash,
+//                                        tx_in_to_key.k_image,
+//                                        outs_pub_keys.data(),
+//                                        in_ephemeral.sec,
+//                                        output_index,
+//                                        new_sigs.data());
 
 
 //        size_t real_output = absolute_offsets.size();
