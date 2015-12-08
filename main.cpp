@@ -194,7 +194,9 @@ int main(int ac, const char* av[]) {
         vector<crypto::public_key> outs_pub_keys;
 
         for (size_t outi = 0; outi < absolute_offsets.size(); ++outi) {
+
             cryptonote::output_data_t output_data = outputs.at(outi);
+
             outs_pub_keys.push_back(output_data.pubkey);
 
             cout << "  - mix out pubkey: " << output_data.pubkey << endl;
@@ -278,13 +280,17 @@ int main(int ac, const char* av[]) {
                 continue;
             }
 
+
+            // get tx public key from extras field
+            crypto::public_key pub_tx_key = cryptonote::get_tx_pub_key_from_extra(tx_found);
+
             cout << "Real tx " << ": ";
 
             cryptonote::keypair in_ephemeral;
             crypto::key_image ki;
 
             if (!generate_key_image_helper(sender_account_keys,
-                                           output_data.pubkey,
+                                           pub_tx_key,
                                            output_index,
                                            in_ephemeral,
                                            ki))

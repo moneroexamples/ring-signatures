@@ -1,11 +1,10 @@
 # Ring signatures
-
- [Monero](https://getmonero.org/)
+ Ring signatures are an essential part of [Monero](https://getmonero.org/). 
+ But how do they look like in a transaction? How do you generate and check them?
 
 In this example, this problem is addressed. Specifically, a C++ program called
-`showmixins` is developed. The program prints out all mixins used in a given transaction. In addition,
-if monero address and privet view key are provided,
-the true mixins will be identified.
+`rings` is developed. The program prints out all signatures used in a given transaction. 
+
 
 ## Pre-requisites
 
@@ -25,7 +24,7 @@ Monero source code compilation and setup are same as
 The main part of the example is main.cpp.
 
 ```c++
-
+```
 
 ## Program options
 
