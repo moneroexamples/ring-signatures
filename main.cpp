@@ -16,6 +16,19 @@ using boost::filesystem::path;
 unsigned int epee::g_test_dbg_lock_sleep = 0;
 
 
+
+struct for_signatures
+{
+    crypto::hash tx_hash ;
+    crypto::key_image kimg ;
+    std::vector<crypto::public_key> outs_pub_keys;
+    cryptonote::keypair in_ephemeral;
+    size_t real_output {0};
+};
+
+
+
+
 int main(int ac, const char* av[]) {
 
     // get command line options
@@ -164,8 +177,15 @@ int main(int ac, const char* av[]) {
                                                   private_spend_key,
                                                   private_view_key};
 
+
+
+
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
+
+
+        vector<for_signatures> for_sig_v;
+
 
         const cryptonote::txin_v &tx_in = tx.vin[i];
 
@@ -195,17 +215,27 @@ int main(int ac, const char* av[]) {
 
         vector<crypto::public_key> outs_pub_keys;
 
+
+        // get public key of outputs used in mixins
+        for (size_t outi = 0; outi < absolute_offsets.size(); ++outi) {
+
+            cryptonote::output_data_t output_data = outputs.at(outi);
+
+            outs_pub_keys.push_back(output_data.pubkey);
+        }
+
+
+        // for each mixin
         for (size_t outi = 0; outi < absolute_offsets.size(); ++outi)
         {
 
             cryptonote::output_data_t output_data = outputs.at(outi);
 
-            outs_pub_keys.push_back(output_data.pubkey);
 
             cout << "  - mix out pubkey: " << output_data.pubkey << endl;
             //cout << "  - sig: " << tx.signatures[i][outi] << endl;
 
-            vector<const crypto::public_key *> out_pub_key_array;
+            vector<const crypto::public_key*> out_pub_key_array;
 
             out_pub_key_array.push_back(&output_data.pubkey);
             vector<crypto::signature> sig_array;
@@ -314,6 +344,16 @@ int main(int ac, const char* av[]) {
 
             cout << "ki: " << ki << endl;
 
+            for_signatures fs;
+
+            fs.tx_hash = tx_hash;
+            fs.kimg = ki;
+            fs.outs_pub_keys = outs_pub_keys;
+            fs.in_ephemeral =in_ephemeral;
+            fs.real_output = absolute_offsets.size();
+
+            for_sig_v.push_back(fs);
+
 
             //outs_pub_keys.push_back(output_data.pubkey);
 
@@ -321,15 +361,60 @@ int main(int ac, const char* av[]) {
 
 
 
-        std::vector<crypto::signature> new_sigs(absolute_offsets.size());
+
+        cout << "\n\n\nfor_sig_v.size(): " << for_sig_v.size() << endl;
 
 
-//        crypto::generate_ring_signature(tx_prefix_hash,
-//                                        tx_in_to_key.k_image,
-//                                        outs_pub_keys.data(),
-//                                        in_ephemeral.sec,
-//                                        output_index,
-//                                        new_sigs.data());
+        std::vector<std::vector<crypto::signature> > signatures;
+
+        crypto::signature sigs[4];
+
+        for (const for_signatures& fs: for_sig_v)
+        {
+
+           // std::vector<crypto::signature> new_sigs(absolute_offsets.size());
+
+
+//            signatures.push_back(std::vector<crypto::signature>());
+//            std::vector<crypto::signature>& sigs = signatures.back();
+//            sigs.resize(absolute_offsets.size());
+
+
+
+
+
+            cout <<"\n"
+                 << fs.tx_hash << "\n"
+                 << fs.kimg << "\n"
+                 << fs.outs_pub_keys.size() << "\n"
+                 << fs.in_ephemeral.sec <<  "\n"
+                 << fs.real_output - 1 << endl;
+
+            std::vector<const crypto::public_key*> keys_ptrs;
+
+            for (const crypto::public_key pk: fs.outs_pub_keys)
+            {
+                keys_ptrs.push_back(&pk);
+            }
+
+//
+            crypto::generate_ring_signature(fs.tx_hash,
+                                            fs.kimg,
+                                            keys_ptrs,
+                                            fs.in_ephemeral.sec,
+                                            fs.real_output,
+                                            sigs);
+////
+////
+            cout << "\n - generate_ring_signature: " << endl;
+            for (size_t i = 0; i < 4; ++i)
+            {
+                cout << "    - sig: " << print_sig(sigs[i]) << endl;
+            }
+
+
+        }
+
 
 
 //        size_t real_output = absolute_offsets.size();
@@ -360,39 +445,39 @@ int main(int ac, const char* av[]) {
 
 //        cout << "\ntx.signatures[i].size(): " << tx.signatures[i].size() << endl;
 //
-//        for (const crypto::signature& sig: tx.signatures[i])
-//        {
-//            cout << "  - sig: " << print_sig(sig) << endl;
-//        }
+        for (const crypto::signature& sig: tx.signatures[i])
+        {
+            cout << "  - real sig: " << print_sig(sig) << endl;
+        }
 
 
         uint64_t result;
 
-        vector<crypto::signature> sigs = tx.signatures[i];
-
-
-        cout << endl;
-
-        for (auto& s: sigs)
-        {
-            cout << print_sig(s) << endl;
-        }
-
-
-        cout << "After random: " << endl;
-
-        random_shuffle (sigs.begin(), sigs.end());
-
-        for (auto& s: sigs)
-        {
-            cout << print_sig(s) << endl;
-        }
+//        vector<crypto::signature> sigs = tx.signatures[i];
 //
-        mcore.check_ring_signature(tx_prefix_hash,
-                         tx_in_to_key.k_image,
-                         outs_pub_keys,
-                         sigs,
-                         result);
+//
+//        cout << endl;
+//
+//        for (auto& s: sigs)
+//        {
+//            cout << print_sig(s) << endl;
+//        }
+//
+//
+//        cout << "After random: " << endl;
+//
+//        random_shuffle (sigs.begin(), sigs.end());
+//
+//        for (auto& s: sigs)
+//        {
+//            cout << print_sig(s) << endl;
+//        }
+////
+//        mcore.check_ring_signature(tx_prefix_hash,
+//                         tx_in_to_key.k_image,
+//                         outs_pub_keys,
+//                         sigs,
+//                         result);
 
 
 
@@ -411,20 +496,6 @@ int main(int ac, const char* av[]) {
     }
 
 
-//
-//    for (const std::vector<crypto::signature>& sigv: tx.signatures)
-//    {
-//        size_t i {0};
-//
-//        for (const crypto::signature& sig: sigv)
-//        {
-//            cout << " - " << print_sig(sig) << endl;
-//        }
-//
-//        cout << endl;
-//    }
-//
-//
 //
 
 
