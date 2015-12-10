@@ -56,7 +56,7 @@ int main(int ac, const char* av[]) {
 
     // get the program command line options, or
     // some default values for quick check
-    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "12de5cdae6adb17a406a9e25f5c4b2b886f0af796cc0a7ab18bc8ca000e43a0a";
+    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
 
 
     crypto::hash tx_hash;
@@ -347,10 +347,11 @@ int main(int ac, const char* av[]) {
             for_signatures fs;
 
             //fs.tx_hash = cryptonote::get_transaction_hash(tx);
-            fs.tx_hash = tx_hash_found;
+            fs.tx_hash = cryptonote::get_transaction_prefix_hash(tx);
+            //fs.tx_hash = tx_hash_found;
             fs.kimg = ki;
             fs.outs_pub_keys = outs_pub_keys;
-            fs.in_ephemeral =in_ephemeral;
+            fs.in_ephemeral = in_ephemeral;
             fs.real_output = absolute_offsets.size();
 
             for_sig_v.push_back(fs);
@@ -389,13 +390,14 @@ int main(int ac, const char* av[]) {
                  << fs.kimg << "\n"
                  << fs.outs_pub_keys.size() << "\n"
                  << fs.in_ephemeral.sec <<  "\n"
-                 << fs.real_output - 1 << endl;
+                 << fs.real_output  << endl;
 
             std::vector<const crypto::public_key*> keys_ptrs;
 
             for (const crypto::public_key pk: fs.outs_pub_keys)
             {
                 keys_ptrs.push_back(&pk);
+                cout << " - " << pk << endl;
             }
 
 //
@@ -403,7 +405,7 @@ int main(int ac, const char* av[]) {
                                             fs.kimg,
                                             keys_ptrs,
                                             fs.in_ephemeral.sec,
-                                            fs.real_output,
+                                            fs.real_output - 1,
                                             sigs);
 ////
 ////
