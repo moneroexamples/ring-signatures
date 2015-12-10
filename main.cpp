@@ -282,14 +282,14 @@ int main(int ac, const char* av[]) {
 
 
             // find tx_hash with given output
-            crypto::hash tx_hash;
+            crypto::hash tx_hash_found;
             cryptonote::transaction tx_found;
 
 
             if (!mcore.get_tx_hash_from_output_pubkey(
                     output_data.pubkey,
                     output_data.height,
-                    tx_hash, tx_found))
+                    tx_hash_found, tx_found))
             {
                 print("- cant find tx_hash for ouput: {}, mixin no: {}, blk: {}\n",
                       output_data.pubkey,outi, output_data.height);
@@ -346,7 +346,8 @@ int main(int ac, const char* av[]) {
 
             for_signatures fs;
 
-            fs.tx_hash = tx_hash;
+            //fs.tx_hash = cryptonote::get_transaction_hash(tx);
+            fs.tx_hash = tx_hash_found;
             fs.kimg = ki;
             fs.outs_pub_keys = outs_pub_keys;
             fs.in_ephemeral =in_ephemeral;
