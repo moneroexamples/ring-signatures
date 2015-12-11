@@ -386,11 +386,11 @@ int main(int ac, const char* av[]) {
 
 
             cout <<"\n"
-                 << fs.tx_hash << "\n"
-                 << fs.kimg << "\n"
-                 << fs.outs_pub_keys.size() << "\n"
-                 << fs.in_ephemeral.sec <<  "\n"
-                 << fs.real_output  << endl;
+                 << "tx_hash_prefix: " << fs.tx_hash << "\n"
+                 << "key_image: " << fs.kimg << "\n"
+                 << "mixins no: " << fs.outs_pub_keys.size() << "\n"
+                 << "in_ephemeral.sec: " << fs.in_ephemeral.sec <<  "\n"
+                 << "fs.real_output: " << fs.real_output  << endl;
 
             std::vector<const crypto::public_key*> keys_ptrs;
 
@@ -401,12 +401,12 @@ int main(int ac, const char* av[]) {
             }
 
 //
-            crypto::generate_ring_signature(fs.tx_hash,
-                                            fs.kimg,
-                                            keys_ptrs,
-                                            fs.in_ephemeral.sec,
-                                            fs.real_output - 1,
-                                            sigs);
+//            crypto::generate_ring_signature(fs.tx_hash,
+//                                            fs.kimg,
+//                                            keys_ptrs,
+//                                            fs.in_ephemeral.sec,
+//                                            fs.real_output - 1,
+//                                            sigs);
 ////
 ////
             cout << "\n - generate_ring_signature: " << endl;
