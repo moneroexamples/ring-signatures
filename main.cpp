@@ -369,7 +369,7 @@ int main(int ac, const char* av[]) {
 
         std::vector<std::vector<crypto::signature> > signatures;
 
-        crypto::signature sigs[4];
+
 
         for (const for_signatures& fs: for_sig_v)
         {
@@ -383,32 +383,32 @@ int main(int ac, const char* av[]) {
 
 
 
-
+            crypto::signature* sigs = new crypto::signature[4];
 
             cout <<"\n"
                  << "tx_hash_prefix: " << fs.tx_hash << "\n"
                  << "key_image: " << fs.kimg << "\n"
                  << "mixins no: " << fs.outs_pub_keys.size() << "\n"
                  << "in_ephemeral.sec: " << fs.in_ephemeral.sec <<  "\n"
-                 << "fs.real_output: " << fs.real_output  << endl;
+                 << "fs.real_output: " << fs.real_output  << "\n" << endl;
 
             std::vector<const crypto::public_key*> keys_ptrs;
 
-            for (const crypto::public_key pk: fs.outs_pub_keys)
+            for (const crypto::public_key& pk: fs.outs_pub_keys)
             {
                 keys_ptrs.push_back(&pk);
                 cout << " - " << pk << endl;
+
             }
 
-//
-//            crypto::generate_ring_signature(fs.tx_hash,
-//                                            fs.kimg,
-//                                            keys_ptrs,
-//                                            fs.in_ephemeral.sec,
-//                                            fs.real_output - 1,
-//                                            sigs);
-////
-////
+
+            crypto::generate_ring_signature(fs.tx_hash,
+                                            fs.kimg,
+                                            keys_ptrs,
+                                            fs.in_ephemeral.sec,
+                                            fs.real_output - 1,
+                                            sigs);
+
             cout << "\n - generate_ring_signature: " << endl;
             for (size_t i = 0; i < 4; ++i)
             {
@@ -416,6 +416,20 @@ int main(int ac, const char* av[]) {
             }
 
 
+
+
+
+            bool result;
+
+            result = crypto::check_ring_signature(
+                    fs.tx_hash,
+                    fs.kimg,
+                    keys_ptrs,
+                    sigs);
+
+            cout <<  "\n - result: " << result << "\n\n" << endl ;
+
+            delete[] sigs;
         }
 
 
@@ -448,13 +462,13 @@ int main(int ac, const char* av[]) {
 
 //        cout << "\ntx.signatures[i].size(): " << tx.signatures[i].size() << endl;
 //
-        for (const crypto::signature& sig: tx.signatures[i])
-        {
-            cout << "  - real sig: " << print_sig(sig) << endl;
-        }
-
-
-        uint64_t result;
+//        for (const crypto::signature& sig: tx.signatures[i])
+//        {
+//            cout << "  - real sig: " << print_sig(sig) << endl;
+//        }
+//
+//
+//        uint64_t result;
 
 //        vector<crypto::signature> sigs = tx.signatures[i];
 //
@@ -486,7 +500,7 @@ int main(int ac, const char* av[]) {
 
 
 
-        cout << result << endl;
+       // cout << result << endl;
 
 //
 //        check_ring_signature(tx_prefix_hash,

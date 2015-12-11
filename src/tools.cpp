@@ -167,7 +167,7 @@ namespace xmreg
         stringstream ss;
 
         ss << "c: <" << epee::string_tools::pod_to_hex(sig.c) << "> "
-           << "e: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
+           << "r: <" << epee::string_tools::pod_to_hex(sig.r) << ">";
 
         return ss.str();
     }
