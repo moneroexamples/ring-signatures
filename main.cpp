@@ -179,6 +179,95 @@ int main(int ac, const char* av[]) {
 
 
 
+    size_t no_of_mixins {3};
+
+    size_t output_index {1};
+
+    crypto::hash tx_hash_prefix  = cryptonote::null_hash;
+
+    tx_hash_prefix = crypto::rand<crypto::hash>();
+
+    cout << tx_hash_prefix << endl;
+
+
+    vector<crypto::public_key> pub_tx_keys;
+
+//    for(crypto::public_key& pk: pub_tx_keys)
+//    {
+//        pk = crypto::rand<crypto::public_key>();
+//        cout << "pk: " << pk << endl;
+//    }
+
+
+    for (size_t i = 0; i < no_of_mixins; ++i)
+    {
+        //cout << "    - sig: " << print_sig(sigs[i]) << endl;
+        pub_tx_keys.push_back(crypto::rand<crypto::public_key>());
+        cout << "pk: " << pub_tx_keys.back() << endl;
+    }
+
+    cryptonote::keypair in_ephemeral;
+    crypto::key_image ki;
+
+    cout << " pub_tx_keys[output_index]: " <<  pub_tx_keys[output_index] << endl;
+
+
+    if (!generate_key_image_helper(sender_account_keys,
+                                   pub_tx_keys[output_index],
+                                   output_index,
+                                   in_ephemeral,
+                                   ki))
+    {
+        return false;
+    }
+
+    cout << "\nki: " << ki << endl;
+
+//
+//    std::vector<const crypto::public_key*> keys_ptrs;
+//
+//    for (const crypto::public_key& pk: pub_tx_keys)
+//    {
+//        keys_ptrs.push_back(&pk);
+//    }
+//
+//
+//    crypto::signature* sigs = new crypto::signature[no_of_mixins];
+//
+//    crypto::generate_ring_signature(tx_hash_prefix,
+//                                    ki,
+//                                    keys_ptrs,
+//                                    in_ephemeral.sec,
+//                                    output_index,
+//                                    sigs);
+//
+//    cout << "\n - generate_ring_signature: " << endl;
+//    for (size_t i = 0; i < no_of_mixins; ++i)
+//    {
+//        cout << "    - sig: " << print_sig(sigs[i]) << endl;
+//    }
+//
+//
+//
+//
+//    bool result;
+//
+//    result = crypto::check_ring_signature(
+//            tx_hash_prefix,
+//            ki,
+//            keys_ptrs,
+//            sigs);
+//
+//    cout <<  "\n - result: " << result << "\n\n" << endl ;
+//
+//
+//    delete[] sigs;
+//
+//    cout << "\nEnd of program." << endl;
+//
+//    return 0;
+
+
 
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
