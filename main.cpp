@@ -310,7 +310,7 @@ int main(int ac, const char* av[]) {
 
     crypto::signature* sigs = new crypto::signature[no_of_mixins];
 
-    crypto::generate_ring_signature(tx_prefix_hash,
+    crypto::generate_ring_signature(new_tx_prefix_hash,
                                     ki,
                                     keys_ptrs,
                                     in_ephemeral.sec,
@@ -330,7 +330,7 @@ int main(int ac, const char* av[]) {
     bool result;
 
     result = crypto::check_ring_signature(
-            tx_prefix_hash,
+            new_tx_prefix_hash,
             ki,
             keys_ptrs,
             sigs);
