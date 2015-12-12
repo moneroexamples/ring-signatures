@@ -185,8 +185,8 @@ int main(int ac, const char* av[]) {
 
     vector<string> outputs_pub_keys_str {
         "f80c28efb6ad285d36aad15341626a991e4974dc5c14d87f8bbb2e9f8687c70f",
-        "cd1ff4678b81e13d70d00605fad591c79687a031ac9146574f07c34910f89454",
         "e12e253a58a50cb457b7323212da24b0375d39cd20e8e46101359a4f27cd5a90",
+        "cd1ff4678b81e13d70d00605fad591c79687a031ac9146574f07c34910f89454",
         "a3c34a78a0f002ea39d7f0ce8665a0e40534f2c9cd4fcbbb2ba98490b0466b3a"
     };
 
@@ -271,9 +271,13 @@ int main(int ac, const char* av[]) {
 
     crypto::public_key reall_output_tx_key;
 
+    // real one
     string reall_output_tx_key_str {"a48f34d9ecfa901bbe3858e8bba2d36a9e17475c5dee30b3b09c7665c69eb2d8"};
-
     size_t reall_output_tx_index {2};
+
+    // fake one
+    //string reall_output_tx_key_str {"b9c65864db37b952103f051dd9afa5588fb5505128d97085f9bed107aa1d8d22"};
+    //size_t reall_output_tx_index {50};
 
     xmreg::parse_str_secret_key(reall_output_tx_key_str, reall_output_tx_key);
 
