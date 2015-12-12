@@ -57,7 +57,9 @@ int main(int ac, const char* av[]) {
 
     // get the program command line options, or
     // some default values for quick check
-    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
+    string tx_hash_str = tx_hash_opt ?
+                         *tx_hash_opt :
+                         "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
 
 
     crypto::hash tx_hash;
@@ -173,13 +175,20 @@ int main(int ac, const char* av[]) {
     vector<uint64_t> results;
     results.resize(tx.vin.size(), 0);
 
-    vector<string> outputs_pub_keys_str {
-        "399a1777ba884c6fd8dd8d79ed9ea2baf5cdad335124610f36eed940403821ed",
-        "de7f2e6719c8daebbb0963d815902b2ee50f51a64bc33f02c6195b03a3419863",
-        "6a3d9f707354f289901a49091910f2debbddfe3284878a53ad6bdb77cd4344ab",
-        "b181d711a77e230d91f3b40825de20e93de75e75d95fe1b8ef8dc8a6651062da"
-    };
+//    vector<string> outputs_pub_keys_str {
+//        "399a1777ba884c6fd8dd8d79ed9ea2baf5cdad335124610f36eed940403821ed",
+//        "de7f2e6719c8daebbb0963d815902b2ee50f51a64bc33f02c6195b03a3419863",
+//        "6a3d9f707354f289901a49091910f2debbddfe3284878a53ad6bdb77cd4344ab",
+//        "b181d711a77e230d91f3b40825de20e93de75e75d95fe1b8ef8dc8a6651062da"
+//    };
 
+
+    vector<string> outputs_pub_keys_str {
+        "f80c28efb6ad285d36aad15341626a991e4974dc5c14d87f8bbb2e9f8687c70f",
+        "cd1ff4678b81e13d70d00605fad591c79687a031ac9146574f07c34910f89454",
+        "e12e253a58a50cb457b7323212da24b0375d39cd20e8e46101359a4f27cd5a90",
+        "a3c34a78a0f002ea39d7f0ce8665a0e40534f2c9cd4fcbbb2ba98490b0466b3a"
+    };
 
     cryptonote::account_keys sender_account_keys {address,
                                                   private_spend_key,
@@ -222,10 +231,30 @@ int main(int ac, const char* av[]) {
 //        cout << "pk: " << pub_tx_keys.back() << endl;
 //    }
 
+
+
+    cryptonote::transaction new_tx;
+
+    cryptonote::keypair txkey = cryptonote::keypair::generate();
+
+    add_tx_pub_key_to_extra(new_tx, txkey.pub);
+
+    crypto::hash new_tx_prefix_hash
+            =  cryptonote::get_transaction_prefix_hash(new_tx);
+
+
+    cout << "\nnew_tx_prefix_hash: "
+         << new_tx_prefix_hash
+         << endl;
+
+
+
+
+
     cryptonote::keypair in_ephemeral;
     crypto::key_image ki;
 
-    cout << " pub_tx_keys[output_index]: " <<  pub_tx_keys[output_index] << endl;
+    cout << "\npub_tx_keys[output_index]: " <<  pub_tx_keys[output_index] << endl;
 
 
 
@@ -240,17 +269,31 @@ int main(int ac, const char* av[]) {
 //    cout << "\n r: " << r << endl;
 //    cout << "\nrecv_derivation: " << recv_derivation << endl;
 
+    crypto::public_key reall_output_tx_key;
+
+    string reall_output_tx_key_str {"a48f34d9ecfa901bbe3858e8bba2d36a9e17475c5dee30b3b09c7665c69eb2d8"};
+
+    size_t reall_output_tx_index {2};
+
+    xmreg::parse_str_secret_key(reall_output_tx_key_str, reall_output_tx_key);
+
+
 
     if (!generate_key_image_helper(sender_account_keys,
-                                   pub_tx_keys[output_index],
-                                   output_index,
+                                   reall_output_tx_key,
+                                   reall_output_tx_index,
                                    in_ephemeral,
                                    ki))
     {
         return false;
     }
 
+
+
+
     cout << "\nki: " << ki << endl;
+
+    cout << "in_ephemeral.sec: " << in_ephemeral.sec << endl;
 
 
     std::vector<const crypto::public_key*> keys_ptrs;
@@ -263,7 +306,7 @@ int main(int ac, const char* av[]) {
 
     crypto::signature* sigs = new crypto::signature[no_of_mixins];
 
-  crypto::generate_ring_signature(tx_hash_prefix,
+    crypto::generate_ring_signature(tx_prefix_hash,
                                     ki,
                                     keys_ptrs,
                                     in_ephemeral.sec,
@@ -283,7 +326,7 @@ int main(int ac, const char* av[]) {
     bool result;
 
     result = crypto::check_ring_signature(
-            tx_hash_prefix,
+            tx_prefix_hash,
             ki,
             keys_ptrs,
             sigs);
