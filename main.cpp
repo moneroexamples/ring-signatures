@@ -52,6 +52,7 @@ int main(int ac, const char* av[]) {
     auto viewkey_opt = opts.get_option<string>("viewkey");
     auto address_opt = opts.get_option<string>("address");
     auto bc_path_opt = opts.get_option<string>("bc-path");
+    auto idx_opt = opts.get_option<size_t>("idx");
 
 
     // get the program command line options, or
@@ -172,6 +173,13 @@ int main(int ac, const char* av[]) {
     vector<uint64_t> results;
     results.resize(tx.vin.size(), 0);
 
+    vector<string> outputs_pub_keys_str {
+        "399a1777ba884c6fd8dd8d79ed9ea2baf5cdad335124610f36eed940403821ed",
+        "de7f2e6719c8daebbb0963d815902b2ee50f51a64bc33f02c6195b03a3419863",
+        "6a3d9f707354f289901a49091910f2debbddfe3284878a53ad6bdb77cd4344ab",
+        "b181d711a77e230d91f3b40825de20e93de75e75d95fe1b8ef8dc8a6651062da"
+    };
+
 
     cryptonote::account_keys sender_account_keys {address,
                                                   private_spend_key,
@@ -179,11 +187,14 @@ int main(int ac, const char* av[]) {
 
 
 
-    size_t no_of_mixins {3};
+    size_t no_of_mixins  = outputs_pub_keys_str.size();
 
-    size_t output_index {1};
+    size_t output_index = idx_opt ? *idx_opt : 0;
+
+    cout << "output_index: " << output_index << endl;
 
     crypto::hash tx_hash_prefix  = cryptonote::null_hash;
+
 
     tx_hash_prefix = crypto::rand<crypto::hash>();
 
@@ -192,24 +203,42 @@ int main(int ac, const char* av[]) {
 
     vector<crypto::public_key> pub_tx_keys;
 
-//    for(crypto::public_key& pk: pub_tx_keys)
-//    {
-//        pk = crypto::rand<crypto::public_key>();
-//        cout << "pk: " << pk << endl;
-//    }
-
-
-    for (size_t i = 0; i < no_of_mixins; ++i)
+    for(string& pk_s: outputs_pub_keys_str)
     {
-        //cout << "    - sig: " << print_sig(sigs[i]) << endl;
-        pub_tx_keys.push_back(crypto::rand<crypto::public_key>());
-        cout << "pk: " << pub_tx_keys.back() << endl;
+
+        crypto::public_key pk;
+
+        xmreg::parse_str_secret_key(pk_s, pk);
+
+        pub_tx_keys.push_back(pk);
+        cout << "pk: " << pk << endl;
     }
+
+
+//    for (size_t i = 0; i < no_of_mixins; ++i)
+//    {
+//        //cout << "    - sig: " << print_sig(sigs[i]) << endl;
+//        pub_tx_keys.push_back(crypto::rand<crypto::public_key>());
+//        cout << "pk: " << pub_tx_keys.back() << endl;
+//    }
 
     cryptonote::keypair in_ephemeral;
     crypto::key_image ki;
 
     cout << " pub_tx_keys[output_index]: " <<  pub_tx_keys[output_index] << endl;
+
+
+
+    crypto::key_derivation recv_derivation ;
+
+
+//    bool r = crypto::generate_key_derivation(pub_tx_keys[output_index],
+//                                             sender_account_keys.m_view_secret_key,
+//                                             recv_derivation);
+
+
+//    cout << "\n r: " << r << endl;
+//    cout << "\nrecv_derivation: " << recv_derivation << endl;
 
 
     if (!generate_key_image_helper(sender_account_keys,
@@ -223,47 +252,48 @@ int main(int ac, const char* av[]) {
 
     cout << "\nki: " << ki << endl;
 
+
+    std::vector<const crypto::public_key*> keys_ptrs;
+
+    for (const crypto::public_key& pk: pub_tx_keys)
+    {
+        keys_ptrs.push_back(&pk);
+    }
+
+
+    crypto::signature* sigs = new crypto::signature[no_of_mixins];
+
+  crypto::generate_ring_signature(tx_hash_prefix,
+                                    ki,
+                                    keys_ptrs,
+                                    in_ephemeral.sec,
+                                    output_index,
+                                    sigs);
+
 //
-//    std::vector<const crypto::public_key*> keys_ptrs;
-//
-//    for (const crypto::public_key& pk: pub_tx_keys)
-//    {
-//        keys_ptrs.push_back(&pk);
-//    }
-//
-//
-//    crypto::signature* sigs = new crypto::signature[no_of_mixins];
-//
-//    crypto::generate_ring_signature(tx_hash_prefix,
-//                                    ki,
-//                                    keys_ptrs,
-//                                    in_ephemeral.sec,
-//                                    output_index,
-//                                    sigs);
-//
-//    cout << "\n - generate_ring_signature: " << endl;
-//    for (size_t i = 0; i < no_of_mixins; ++i)
-//    {
-//        cout << "    - sig: " << print_sig(sigs[i]) << endl;
-//    }
-//
-//
-//
-//
-//    bool result;
-//
-//    result = crypto::check_ring_signature(
-//            tx_hash_prefix,
-//            ki,
-//            keys_ptrs,
-//            sigs);
-//
-//    cout <<  "\n - result: " << result << "\n\n" << endl ;
+    cout << "\n - generate_ring_signature: " << endl;
+    for (size_t i = 0; i < no_of_mixins; ++i)
+    {
+        cout << "    - sig: " << print_sig(sigs[i]) << endl;
+    }
+
 //
 //
-//    delete[] sigs;
 //
-//    cout << "\nEnd of program." << endl;
+    bool result;
+
+    result = crypto::check_ring_signature(
+            tx_hash_prefix,
+            ki,
+            keys_ptrs,
+            sigs);
+
+    cout <<  "\n - result: " << result << "\n\n" << endl ;
+
+
+    delete[] sigs;
+
+    cout << "\nEnd of program." << endl;
 //
     return 0;
 

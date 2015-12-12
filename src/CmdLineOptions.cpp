@@ -27,6 +27,8 @@ namespace xmreg
                  "transaction hash")
                 ("viewkey,v", value<string>(),
                  "private view key string")
+                ("idx,i", value<size_t >(),
+                 "input index")
                 ("address,a", value<string>(),
                  "monero address string")
                 ("bc-path,b", value<string>(),

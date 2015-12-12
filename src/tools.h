@@ -10,6 +10,11 @@
 #include "monero_headers.h"
 #include "tx_details.h"
 
+extern "C" {
+    #include "crypto/crypto-ops.h"
+    #include "crypto/random.h"
+}
+
 #include "../ext/dateparser.h"
 
 #include <boost/filesystem.hpp>
@@ -104,6 +109,14 @@ namespace xmreg
         return  static_cast<double>(core_amount) / 1e12;
     }
 
+
+    /* generate a random 32-byte (256-bit) integer and copy it to res */
+    static inline void random_scalar(ec_scalar &res) {
+        unsigned char tmp[64];
+        generate_random_bytes(64, tmp);
+        sc_reduce(tmp);
+        memcpy(&res, tmp, 32);
+    }
 
 
 }
