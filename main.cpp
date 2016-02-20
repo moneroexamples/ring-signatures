@@ -162,6 +162,8 @@ int main(int ac, const char* av[]) {
         return false;
     }
 
+    size_t mixin_no = 4;
+
 
 
     // find random output for each input
@@ -182,20 +184,25 @@ int main(int ac, const char* av[]) {
 
         cout << "tx input amount: " << tx_in_to_key.amount << endl;
 
-        const cryptonote::tx_out_index toi
-                = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, i);
+        for (size_t j = 0; j < mixin_no; ++j)
+        {
+            const cryptonote::tx_out_index toi
+                    = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, j);
 
+            uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
 
-
-        uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
-
-        cout << "tx found hash: " << toi.first;
-        cout << "output index in that transaction: " << toi.second << endl;
+            cout << "mixin no: " << j << endl;
+            cout << "tx found hash: " << toi.first;
+            cout << " in block of height: " << height;
+            cout << "\noutput index in that transaction: " << toi.second << endl;
+        }
 
     }
 
+    cout << "\n" << endl;
 
-        cout << "Signatures: " << endl;
+
+    cout << "Signatures: " << endl;
 
     crypto::hash tx_prefix_hash = cryptonote::get_transaction_prefix_hash(tx);
 
