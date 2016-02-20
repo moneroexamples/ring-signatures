@@ -163,7 +163,39 @@ int main(int ac, const char* av[]) {
     }
 
 
-    cout << "Signatures: " << endl;
+
+    // find random output for each input
+    // based on the amount of that input
+    for (size_t i = 0; i < tx.vin.size(); ++i) {
+
+
+        vector<for_signatures> for_sig_v;
+
+
+        const cryptonote::txin_v &tx_in = tx.vin[i];
+
+
+        // get tx input key
+        const cryptonote::txin_to_key& tx_in_to_key
+                = boost::get<cryptonote::txin_to_key>(tx_in);
+
+
+        cout << "tx input amount: " << tx_in_to_key.amount << endl;
+
+        const cryptonote::tx_out_index toi
+                = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, i);
+
+
+
+        uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
+
+        cout << "tx found hash: " << toi.first;
+        cout << "output index in that transaction: " << toi.second << endl;
+
+    }
+
+
+        cout << "Signatures: " << endl;
 
     crypto::hash tx_prefix_hash = cryptonote::get_transaction_prefix_hash(tx);
 
