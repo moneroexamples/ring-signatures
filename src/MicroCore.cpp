@@ -36,7 +36,7 @@ namespace xmreg
     {
         int db_flags = 0;
 
-        db_flags |= MDB_RDONLY ;
+        db_flags |= MDB_NOSYNC ;
 
         BlockchainDB* db = nullptr;
         db = new BlockchainLMDB();
@@ -279,6 +279,6 @@ namespace xmreg
      */
     MicroCore::~MicroCore()
     {
-        delete &m_blockchain_storage.get_db();
+       delete &m_blockchain_storage.get_db();
     }
 }

@@ -111,8 +111,6 @@ int main(int ac, const char* av[]) {
     }
 
 
-
-
     path blockchain_path;
 
     if (!xmreg::get_blockchain_path(bc_path_opt, blockchain_path))
@@ -246,8 +244,6 @@ int main(int ac, const char* av[]) {
     cout << "\nnew_tx_prefix_hash: "
          << new_tx_prefix_hash
          << endl;
-
-
 
 
 
