@@ -192,44 +192,13 @@ int main(int ac, const char* av[]) {
         cout << "no of ouputs with such amount: " << num_outs << endl;
 
 
-
-        cout << "uint64_t is size: " << sizeof(unsigned long int) << endl; // uint64_t
-
-        cout << "char size: " << sizeof(char) << endl; // char
-
-        cout << "(char)1 << 53: " << (char) 1 << 8 << endl; // char
-
-
-        ofstream myfile;
-
-        myfile.open("example.csv");
-
         for (size_t j = 0; j< 1; ++j)
         {
-            uint64_t rndv = crypto::rand<uint64_t>();
-            // triangular distribution over [a,b) with a=0, mode c=b=up_index_limit
-            uint64_t r = rndv % ((uint64_t)1 << 53);
+            uint64_t ii = xmreg::get_random_index(num_outs);
 
-            cout << rndv  << " % " << ((uint64_t)1 << 53) << " max(): "
-            <<  std::numeric_limits<uint64_t>::max() << endl;
-
-            cout << "r = " << r << endl;
-
-            double frac = std::sqrt((double)r / ((uint64_t)1 << 53));
-            uint64_t ii = (uint64_t)(frac*num_outs);
-
-            cout << " frac " << frac << ", i " << ii << endl;
-            myfile << ii << "\n";
+           cout << "random indx: " << ii << "\n";
 
         }
-        myfile.close();
-
-        cout << "tx input amount: " << tx_in_to_key.amount << endl;
-        cout << "no of ouputs with such amount: " << num_outs << endl;
-
-
-
-
 
 
         continue;

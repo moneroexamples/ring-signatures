@@ -102,6 +102,9 @@ namespace xmreg
     uint64_t
     estimate_bc_height(const string& date, const char* format = "%Y-%m-%d");
 
+    uint64_t
+    get_random_index(uint64_t max_index);
+
 
     inline double
     get_xmr(uint64_t core_amount)

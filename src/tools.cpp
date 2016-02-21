@@ -299,5 +299,23 @@ namespace xmreg
         return static_cast<uint64_t>(td.total_seconds()) / MONERO_BLOCK_TIME;
     }
 
+    /**
+     * @url https://github.com/monero-project/bitmonero/blob/master/src/cryptonote_core/blockchain.cpp#L1544
+     */
+    uint64_t
+    get_random_index(uint64_t max_index)
+    {
+        uint64_t rndv = crypto::rand<uint64_t>();
+
+        // triangular distribution over [a,b) with a=0, mode c=b=up_index_limit
+        uint64_t r = rndv % ((uint64_t)1 << 53);
+
+        double frac = std::sqrt((double)r / ((uint64_t)1 << 53));
+
+        uint64_t i = (uint64_t)(frac*max_index);
+
+        return i;
+    }
+
 
 }
