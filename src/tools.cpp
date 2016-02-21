@@ -318,4 +318,26 @@ namespace xmreg
     }
 
 
+    unordered_set<uint64_t>
+    get_random_indices(uint64_t max_index, uint64_t no_of_indices)
+    {
+        unordered_set<uint64_t> output_indices;
+
+        while (output_indices.size() < no_of_indices)
+        {
+            // make sure not selecting twice
+            uint64_t out_index = xmreg::get_random_index(max_index);
+
+            if (output_indices.count(out_index))
+            {
+                continue;
+            }
+
+            output_indices.insert(out_index);
+        }
+
+    }
+
+
+
 }

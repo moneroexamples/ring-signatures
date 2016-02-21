@@ -105,6 +105,9 @@ namespace xmreg
     uint64_t
     get_random_index(uint64_t max_index);
 
+    unordered_set<uint64_t>
+    get_random_indices(uint64_t max_index, uint64_t no_of_indices);
+
 
     inline double
     get_xmr(uint64_t core_amount)
