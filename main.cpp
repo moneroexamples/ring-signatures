@@ -192,33 +192,26 @@ int main(int ac, const char* av[]) {
         cout << "no of ouputs with such amount: " << num_outs << endl;
 
 
-        for (size_t j = 0; j< 1; ++j)
+        for (size_t j = 0; j < mixin_no; ++j)
         {
-            uint64_t ii = xmreg::get_random_index(num_outs);
 
-           cout << "random indx: " << ii << "\n";
+            // make sure not selecting twice
+            uint64_t out_index = xmreg::get_random_index(num_outs);
 
+            const cryptonote::tx_out_index toi
+                    = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, num_outs - 1);
+
+            uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
+
+            cout << endl;
+            cout << "amount index: " << num_outs - 1 << endl;
+            cout << "mixin no: " << j << endl;
+            cout << "tx found hash: " << crypto::hash(toi.first) << " f";
+            cout << " in block of height: " << height;
+            cout << "\noutput index in that transaction: " << toi.second << endl;
+
+            --num_outs;
         }
-
-
-        continue;
-
-//        for (size_t j = 0; j < mixin_no; ++j)
-//        {
-//            const cryptonote::tx_out_index toi
-//                    = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, num_outs - 1);
-//
-//            uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
-//
-//            cout << endl;
-//            cout << "amount index: " << num_outs - 1 << endl;
-//            cout << "mixin no: " << j << endl;
-//            cout << "tx found hash: " << crypto::hash(toi.first) << " f";
-//            cout << " in block of height: " << height;
-//            cout << "\noutput index in that transaction: " << toi.second << endl;
-//
-//            --num_outs;
-//        }
 
     }
 
