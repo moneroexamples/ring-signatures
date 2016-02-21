@@ -59,7 +59,7 @@ int main(int ac, const char* av[]) {
     // some default values for quick check
     string tx_hash_str = tx_hash_opt ?
                          *tx_hash_opt :
-                         "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
+                         "fc783b65b728bd5a14c2ff085421a72f52b2568b1b8698eb473ca2e27372d235";
 
 
     crypto::hash tx_hash;
@@ -166,6 +166,9 @@ int main(int ac, const char* av[]) {
 
 
 
+
+
+
     // find random output for each input
     // based on the amount of that input
     for (size_t i = 0; i < tx.vin.size(); ++i) {
@@ -182,22 +185,75 @@ int main(int ac, const char* av[]) {
                 = boost::get<cryptonote::txin_to_key>(tx_in);
 
 
+        uint64_t num_outs = core_storage.get_db().get_num_outputs(tx_in_to_key.amount);
+
+
         cout << "tx input amount: " << tx_in_to_key.amount << endl;
+        cout << "no of ouputs with such amount: " << num_outs << endl;
 
-        for (size_t j = 0; j < mixin_no; ++j)
+
+
+        cout << "uint64_t is size: " << sizeof(unsigned long int) << endl; // uint64_t
+
+        cout << "char size: " << sizeof(char) << endl; // char
+
+        cout << "(char)1 << 53: " << (char) 1 << 8 << endl; // char
+
+
+        ofstream myfile;
+
+        myfile.open("example.csv");
+
+        for (size_t j = 0; j< 1; ++j)
         {
-            const cryptonote::tx_out_index toi
-                    = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, j);
+            uint64_t rndv = crypto::rand<uint64_t>();
+            // triangular distribution over [a,b) with a=0, mode c=b=up_index_limit
+            uint64_t r = rndv % ((uint64_t)1 << 53);
 
-            uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
+            cout << rndv  << " % " << ((uint64_t)1 << 53) << " max(): "
+            <<  std::numeric_limits<uint64_t>::max() << endl;
 
-            cout << "mixin no: " << j << endl;
-            cout << "tx found hash: " << toi.first;
-            cout << " in block of height: " << height;
-            cout << "\noutput index in that transaction: " << toi.second << endl;
+            cout << "r = " << r << endl;
+
+            double frac = std::sqrt((double)r / ((uint64_t)1 << 53));
+            uint64_t ii = (uint64_t)(frac*num_outs);
+
+            cout << " frac " << frac << ", i " << ii << endl;
+            myfile << ii << "\n";
+
         }
+        myfile.close();
+
+        cout << "tx input amount: " << tx_in_to_key.amount << endl;
+        cout << "no of ouputs with such amount: " << num_outs << endl;
+
+
+
+
+
+
+        continue;
+
+//        for (size_t j = 0; j < mixin_no; ++j)
+//        {
+//            const cryptonote::tx_out_index toi
+//                    = core_storage.get_db().get_output_tx_and_index(tx_in_to_key.amount, num_outs - 1);
+//
+//            uint64_t height = core_storage.get_db().get_tx_block_height(toi.first);
+//
+//            cout << endl;
+//            cout << "amount index: " << num_outs - 1 << endl;
+//            cout << "mixin no: " << j << endl;
+//            cout << "tx found hash: " << crypto::hash(toi.first) << " f";
+//            cout << " in block of height: " << height;
+//            cout << "\noutput index in that transaction: " << toi.second << endl;
+//
+//            --num_outs;
+//        }
 
     }
+
+    return 0;
 
     cout << "\n" << endl;
 
