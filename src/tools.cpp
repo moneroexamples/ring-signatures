@@ -336,6 +336,8 @@ namespace xmreg
             output_indices.insert(out_index);
         }
 
+        return output_indices;
+
     }
 
 

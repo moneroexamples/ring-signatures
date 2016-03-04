@@ -28,7 +28,6 @@ namespace xmreg
         size_t m_internal_output_index;
         bool m_spent;
 
-
         crypto::hash tx_hash() const;
 
         uint64_t amount() const;
