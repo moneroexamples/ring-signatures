@@ -108,6 +108,26 @@ namespace xmreg
     }
 
 
+    bool
+    MicroCore::get_block_by_tx_hash(const crypto::hash& tx_hash, block& blk)
+    {
+
+        try
+        {
+            // find block in which the given transaction is located
+            uint64_t tx_blk_height = m_blockchain_storage.get_db().get_tx_block_height(tx_hash);
+            blk = m_blockchain_storage.get_db().get_block_from_height(tx_blk_height);
+        }
+        catch (const exception& e)
+        {
+            cerr << e.what() << endl;
+            return false;
+        }
+
+        return true;
+    }
+
+
 
     /**
      * Get transaction tx from the blockchain using it hash

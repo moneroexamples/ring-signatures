@@ -61,21 +61,21 @@ int main(int ac, const char* av[]) {
     // some default values for quick check
     string tx_hash_str = tx_hash_opt ?
                          *tx_hash_opt :
-                         "b720cb3e5a05ae9346dff31c55ae1b23167d93289aeb806810e7ae1aac7ec213";
+                         "cda104278309e1637bbe8da841adb25d5d4f541de428e8e3808c83f9a71fe22e";
 
 
     string viewkey_str = viewkey_opt ?
                          *viewkey_opt :
-                         "fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309";
+                         "9c2edec7636da3fbb343931d6c3d6e11bcd8042ff7e11de98a8d364f31976c04";
 
 
     string spendkey_str = spendkey_opt ?
                          *spendkey_opt :
-                         "1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03";
+                         "950b90079b0f530c11801ef29e99618d3768d79d3d24972ff4b6fd9687b7b20c";
 
     string address_str = address_opt ?
                           *address_opt :
-                          "41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB";
+                          "43A7NUmo5HbhJoSKbw9bRWW4u2b8dNfhKheTR5zxoRwQ7bULK5TgUQeAvPS5EVNLAJYZRQYqXCmhdf26zG2Has35SpiF1FP";
 
 
     crypto::hash tx_hash;
@@ -143,8 +143,6 @@ int main(int ac, const char* av[]) {
     }
 
 
-
-
     // get the high level cryptonote::Blockchain object to interact
     // with the blockchain lmdb database
     cryptonote::Blockchain& core_storage = mcore.get_core();
@@ -163,11 +161,18 @@ int main(int ac, const char* av[]) {
     }
 
 
-    uint64_t tx_blk_height = core_storage.get_db().get_tx_block_height(tx_hash);
-    cryptonote::block blk = core_storage.get_db().get_block_from_height(tx_blk_height);
+    // find block in which the given transaction is located
+    cryptonote::block blk ;
+
+    if (!mcore.get_block_by_tx_hash(tx_hash, blk))
+    {
+        cerr << "Cant find block for the given transaction" << endl;
+        return false;
+    }
 
 
-    print("\n\ntx hash          : {} in block no. {}\n\n", tx_hash, tx_blk_height);
+    print("\n\ntx hash          : {} in block no. {}\n\n",
+          tx_hash, cryptonote::get_block_height(blk));
 
     // lets check our keys
     print("private view key : {}\n", private_view_key);
@@ -195,7 +200,7 @@ int main(int ac, const char* av[]) {
 
     if (outputs_ids.size())
     {
-        cout << " We found our outputs: " << endl;
+        cout << "We found our outputs: " << endl;
 
         for (size_t ouput_i: outputs_ids)
         {
@@ -206,10 +211,7 @@ int main(int ac, const char* av[]) {
             const cryptonote::txout_to_key& tx_out_to_key
                 = boost::get<cryptonote::txout_to_key>(tx_output.target);
 
-            cout << "Our output: " << tx_out_to_key.key
-                 << ", amount:" << cryptonote::print_money(tx_output.amount)
-                 << endl;
-
+            print("Our output: {:s}, amount {:0.4f}\n", tx_out_to_key.key, tx_output.amount / 1e12);
 
             // public transaction key is combined with our private view key
             // to create, so called, derived key.
@@ -225,7 +227,7 @@ int main(int ac, const char* av[]) {
             }
 
 
-            cout << "derived key: " << derivation << endl;
+            print("Derived key: {:s}\n", derivation);
 
 
             // generate key_image of this output
@@ -237,19 +239,19 @@ int main(int ac, const char* av[]) {
                                            key_image))
             {
                 cerr << "Cant generate key image for tx: "
-                            << cryptonote::get_transaction_hash(tx) << endl;
+                     << cryptonote::get_transaction_hash(tx) << endl;
 
                 return 1;
             }
 
 
-            cout << "Key_image generated: " << key_image << endl;
+            print("Key_image generated: {:s}\n", key_image);
 
             bool is_spent = core_storage.have_tx_keyimg_as_spent(key_image);
 
-            cout << "Is output spent?: " << is_spent << endl;
+            print("Is output spent?: {}\n", is_spent);
 
-
+            cout <<  "\n" << endl;
         }
     }
 

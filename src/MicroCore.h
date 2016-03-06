@@ -44,6 +44,9 @@ namespace xmreg
         get_block_by_height(const uint64_t& height, block& blk);
 
         bool
+        get_block_by_tx_hash(const crypto::hash& tx_hash, block& blk);
+
+        bool
         get_tx(const crypto::hash& tx_hash, transaction& tx);
 
         bool
