@@ -51,7 +51,8 @@ namespace xmreg
 
     bool
     parse_str_address(const string& address_str,
-                      account_public_address& address);
+                      account_public_address& address,
+                      bool testnet);
 
     inline bool
     is_separator(char c);

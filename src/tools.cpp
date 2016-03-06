@@ -75,10 +75,12 @@ namespace xmreg
      * cryptonote::account_public_address object
      */
     bool
-    parse_str_address(const string& address_str, account_public_address& address)
+    parse_str_address(const string& address_str,
+                      account_public_address& address,
+                      bool testnet)
     {
 
-        if (!get_account_address_from_str(address, false, address_str))
+        if (!get_account_address_from_str(address, testnet, address_str))
         {
             cerr << "Error getting address: " << address_str << endl;
             return false;

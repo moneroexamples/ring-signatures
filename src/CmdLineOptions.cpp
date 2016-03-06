@@ -27,12 +27,14 @@ namespace xmreg
                  "transaction hash")
                 ("viewkey,v", value<string>(),
                  "private view key string")
-                ("idx,i", value<size_t >(),
-                 "input index")
+                ("spendkey,s", value<string>(),
+                 "private spend key string")
                 ("address,a", value<string>(),
                  "monero address string")
                 ("bc-path,b", value<string>(),
-                 "path to lmdb blockchain");
+                 "path to lmdb blockchain")
+                ("testnet",  value<bool>()->default_value(false)->implicit_value(true),
+                 "is the address from testnet network");
 
 
         store(command_line_parser(acc, avv)

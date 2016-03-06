@@ -50,16 +50,32 @@ int main(int ac, const char* av[]) {
     // get other options
     auto tx_hash_opt = opts.get_option<string>("txhash");
     auto viewkey_opt = opts.get_option<string>("viewkey");
+    auto spendkey_opt = opts.get_option<string>("spendkey");
     auto address_opt = opts.get_option<string>("address");
     auto bc_path_opt = opts.get_option<string>("bc-path");
-    auto idx_opt = opts.get_option<size_t>("idx");
+    bool testnet     = *(opts.get_option<bool>("testnet"));
+
 
 
     // get the program command line options, or
     // some default values for quick check
     string tx_hash_str = tx_hash_opt ?
                          *tx_hash_opt :
-                         "0254ad441518911f1989d10bc1945ef45504b92f06e4ab2cfec43a455fdd5f3e";
+                         "b720cb3e5a05ae9346dff31c55ae1b23167d93289aeb806810e7ae1aac7ec213";
+
+
+    string viewkey_str = viewkey_opt ?
+                         *viewkey_opt :
+                         "fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309";
+
+
+    string spendkey_str = spendkey_opt ?
+                         *spendkey_opt :
+                         "1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03";
+
+    string address_str = address_opt ?
+                          *address_opt :
+                          "41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB";
 
 
     crypto::hash tx_hash;
@@ -71,15 +87,6 @@ int main(int ac, const char* av[]) {
     }
 
     crypto::secret_key private_view_key;
-    crypto::secret_key private_spend_key;
-    cryptonote::account_public_address address;
-
-
-    string viewkey_str {"fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309"};
-    string spendkey_str {"1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03"};
-
-    string address_str {"41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB"};
-
 
     // parse string representing given private viewkey
     if (!xmreg::parse_str_secret_key(viewkey_str, private_view_key))
@@ -89,6 +96,7 @@ int main(int ac, const char* av[]) {
     }
 
 
+    crypto::secret_key private_spend_key;
 
     // parse string representing given private spend
     if (!xmreg::parse_str_secret_key(spendkey_str, private_spend_key))
@@ -97,8 +105,10 @@ int main(int ac, const char* av[]) {
         return 1;
     }
 
+    cryptonote::account_public_address address;
+
     // parse string representing given monero address
-    if (!xmreg::parse_str_address(address_str,  address))
+    if (!xmreg::parse_str_address(address_str,  address, testnet))
     {
         cerr << "Cant parse address: " << address_str << endl;
         return 1;
@@ -133,14 +143,6 @@ int main(int ac, const char* av[]) {
     }
 
 
-    print("\n\ntx hash          : {}\n\n", tx_hash);
-
-
-    // lets check our keys
-    print("private view key : {}\n", private_view_key);
-    print("private spend key: {}\n", private_spend_key);
-    print("address          : {}\n\n\n", address);
-
 
 
     // get the high level cryptonote::Blockchain object to interact
@@ -161,6 +163,18 @@ int main(int ac, const char* av[]) {
     }
 
 
+    uint64_t tx_blk_height = core_storage.get_db().get_tx_block_height(tx_hash);
+    cryptonote::block blk = core_storage.get_db().get_block_from_height(tx_blk_height);
+
+
+    print("\n\ntx hash          : {} in block no. {}\n\n", tx_hash, tx_blk_height);
+
+    // lets check our keys
+    print("private view key : {}\n", private_view_key);
+    print("private spend key: {}\n", private_spend_key);
+    print("address          : {}\n\n\n", address);
+
+
     // having our transaction, first we check which output in that
     // transactions are ours. For this we need to go through all outputs
     // in a transaction.
@@ -168,14 +182,20 @@ int main(int ac, const char* av[]) {
     std::vector<size_t> outputs_ids;
 
     uint64_t money_transfered {0};
+    uint64_t miner_money_transfered {0};
 
 
     cryptonote::lookup_acc_outs(account_keys, tx, outputs_ids, money_transfered);
+    cryptonote::lookup_acc_outs(account_keys, blk.miner_tx, outputs_ids, miner_money_transfered);
+
+
+    // get tx public key from extras field
+    crypto::public_key pub_tx_key = cryptonote::get_tx_pub_key_from_extra(tx);
 
 
     if (outputs_ids.size())
     {
-        cout << " We found our outputs" << endl;
+        cout << " We found our outputs: " << endl;
 
         for (size_t ouput_i: outputs_ids)
         {
@@ -186,10 +206,51 @@ int main(int ac, const char* av[]) {
             const cryptonote::txout_to_key& tx_out_to_key
                 = boost::get<cryptonote::txout_to_key>(tx_output.target);
 
-            cout << "Our outputs: " << tx_out_to_key.key << endl;
+            cout << "Our output: " << tx_out_to_key.key
+                 << ", amount:" << cryptonote::print_money(tx_output.amount)
+                 << endl;
+
+
+            // public transaction key is combined with our private view key
+            // to create, so called, derived key.
+            crypto::key_derivation derivation;
+
+            if (!generate_key_derivation(pub_tx_key, private_view_key, derivation))
+            {
+                cerr << "Cant get dervied key for: " << "\n"
+                     << "pub_tx_key: " << private_view_key << " and "
+                     << "private_view_key" << private_view_key << endl;
+
+                return 1;
+            }
+
+
+            cout << "derived key: " << derivation << endl;
+
+
+            // generate key_image of this output
+            crypto::key_image key_image;
+
+            if (!xmreg::generate_key_image(derivation, ouput_i,
+                                           private_spend_key,
+                                           account_keys.m_account_address.m_spend_public_key,
+                                           key_image))
+            {
+                cerr << "Cant generate key image for tx: "
+                            << cryptonote::get_transaction_hash(tx) << endl;
+
+                return 1;
+            }
+
+
+            cout << "Key_image generated: " << key_image << endl;
+
+            bool is_spent = core_storage.have_tx_keyimg_as_spent(key_image);
+
+            cout << "Is output spent?: " << is_spent << endl;
+
 
         }
-
     }
 
 
