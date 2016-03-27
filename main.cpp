@@ -13,9 +13,9 @@ using xmreg::print_sig;
 
 using boost::filesystem::path;
 
-unsigned int epee::g_test_dbg_lock_sleep = 0;
-
-
+namespace epee {
+    unsigned int g_test_dbg_lock_sleep = 0;
+}
 
 struct for_signatures
 {
@@ -25,8 +25,6 @@ struct for_signatures
     cryptonote::keypair in_ephemeral;
     size_t real_output {0};
 };
-
-
 
 
 int main(int ac, const char* av[]) {
@@ -56,7 +54,9 @@ int main(int ac, const char* av[]) {
 
     // get the program command line options, or
     // some default values for quick check
-    string tx_hash_str = tx_hash_opt ? *tx_hash_opt : "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
+    string tx_hash_str = tx_hash_opt
+                         ? *tx_hash_opt
+                         : "9621b84346b48e094ec52e6a94ba3606451f2792b528baf792a232d45f075bd9";
 
 
     crypto::hash tx_hash;
@@ -71,12 +71,6 @@ int main(int ac, const char* av[]) {
     crypto::secret_key private_spend_key;
     cryptonote::account_public_address address;
 
-
-//    string viewkey_str {"fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309"};
-//    string spendkey_str {"1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03"};
-//
-//    string address_str {"41vEA7Ye8Bpeda6g59v5t46koWrVn2PNgEKgzquJjmiKCFTsh9gajr8J3pad49rqu581TAtFGCH9CYTCkYrCpuWUG9GkgeB"};
-//
 
     string viewkey_str {"fed77158ec692fe9eb951f6aeb22c3bda16fe8926c1aac13a5651a9c27f34309"};
     string spendkey_str {"1eaa41781d5f880dc69c9379e281225c781a6db8dc544a26008e7a07890afa03"};
