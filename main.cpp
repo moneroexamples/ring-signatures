@@ -176,10 +176,7 @@ int main(int ac, const char* av[]) {
 
     for (size_t i = 0; i < tx.vin.size(); ++i)
     {
-
-
         vector<for_signatures> for_sig_v;
-
 
         const cryptonote::txin_v &tx_in = tx.vin[i];
 
@@ -201,6 +198,7 @@ int main(int ac, const char* av[]) {
                 = cryptonote::relative_output_offsets_to_absolute(
                         tx_in_to_key.key_offsets);
 
+        // get public keys used in a given mixin
         std::vector<cryptonote::output_data_t> outputs;
         core_storage.get_db().get_output_key(tx_in_to_key.amount,
                                              absolute_offsets,
